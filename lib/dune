@@ -1,0 +1,3 @@
+(library
+ (name chasity_lib)
+ (libraries fmt))

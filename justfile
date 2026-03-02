@@ -8,9 +8,13 @@ default:
 build:
     {{nix}} dune build
 
+# Recompile on file changes
+watch:
+    {{nix}} dune build --watch
+
 # Run chasity with arbitrary arguments, e.g. `just run generate --shapes foo.ttl`
 run *ARGS:
-    {{nix}} dune exec chasity -- {{ARGS}}
+    {{nix}} dune exec bin/main.exe -- {{ARGS}}
 
 # Run all tests in test/
 test:
@@ -27,6 +31,10 @@ format:
 # Build the nix package and run a command, e.g. `just nix-run --version`
 nix-run *ARGS:
     nix run .# -- {{ARGS}}
+
+# Enter the dev environment with all tools (ocamllsp, dune, riot, etc.)
+dev:
+    bash scripts/dev-shell.sh
 
 # Drop into a temporary shell with chasity on PATH (exit to leave)
 nix-shell:

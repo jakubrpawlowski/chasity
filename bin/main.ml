@@ -10,9 +10,16 @@ let generate_cmd =
     let doc = "Output directory for generated .proto files." in
     Arg.(value & opt dir "." & info [ "out" ] ~doc)
   in
-  let run shapes out =
-    Fmt.pr "generate: shapes=%s out=%s@." shapes out;
-    `Ok ()
+  let run shapes _out =
+    match Chasity_lib.Ntriples.from_file (Path shapes) with
+    | Ok triples ->
+        List.iter
+          (fun t -> Fmt.pr "%a@." Chasity_lib.Ntriples.pp_triple t)
+          triples;
+        `Ok ()
+    | Error (Riot_failed { path = Path p; exit_code }) ->
+        Fmt.epr "riot failed on %s (exit %d)@." p exit_code;
+        `Error (false, "riot failed")
   in
   let info = Cmd.info "generate" ~doc in
   Cmd.v info Term.(ret (const run $ shapes $ out))

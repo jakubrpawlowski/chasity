@@ -10,4 +10,5 @@
  (depends
   (ocaml (>= 5.1))
   cmdliner
-  fmt))
+  fmt
+  (alcotest :with-test)))

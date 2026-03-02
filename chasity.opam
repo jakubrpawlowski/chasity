@@ -6,6 +6,7 @@ depends: [
   "ocaml" {>= "5.1"}
   "cmdliner"
   "fmt"
+  "alcotest" {with-test}
   "odoc" {with-doc}
 ]
 build: [

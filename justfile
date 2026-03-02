@@ -8,17 +8,17 @@ default:
 build:
     {{nix}} dune build
 
-# Recompile on file changes
+# Recompile and test on file changes
 watch:
-    {{nix}} dune build --watch
+    {{nix}} dune runtest --watch
 
 # Run chasity with arbitrary arguments, e.g. `just run generate --shapes foo.ttl`
 run *ARGS:
     {{nix}} dune exec bin/main.exe -- {{ARGS}}
 
-# Run all tests in test/
-test:
-    {{nix}} dune runtest
+# Run all tests in test/ (--force to re-run cached results)
+test *ARGS:
+    {{nix}} dune runtest {{ARGS}}
 
 # Delete _build/ artifacts
 clean:

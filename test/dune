@@ -1,0 +1,5 @@
+(test
+ (name test_main)
+ (libraries chasity_lib alcotest)
+ (deps
+  (glob_files fixtures/*.ttl)))

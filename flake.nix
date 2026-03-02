@@ -29,6 +29,7 @@
             buildInputs = [
               ocamlPackages.cmdliner
               ocamlPackages.fmt
+              ocamlPackages.alcotest
             ];
 
             strictDeps = true;

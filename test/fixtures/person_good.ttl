@@ -1,0 +1,7 @@
+@prefix schema: <http://schema.org/> .
+
+<http://example.org/jakub>
+	a schema:Person ;
+	schema:name "Jakub Pawlowski" ;
+	schema:email "jakub@example.com" ;
+	schema:birthYear 1987 .

@@ -32,6 +32,10 @@ nix-run *ARGS:
 nix-shell:
     nix shell .#
 
+# Validate test fixtures against SHACL shapes
+validate-fixtures:
+    {{nix}} bash scripts/validate-fixtures.sh
+
 # Print the CLI help text
 help:
     {{nix}} dune exec chasity -- --help

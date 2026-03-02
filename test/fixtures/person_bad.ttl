@@ -1,0 +1,5 @@
+@prefix schema: <http://schema.org/> .
+
+<http://example.org/bad>
+	a schema:Person ;
+	schema:name "Missing Email" .

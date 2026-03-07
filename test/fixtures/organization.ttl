@@ -1,0 +1,12 @@
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix schema: <http://schema.org/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+schema:OrganizationShape
+	a sh:NodeShape ;
+	sh:targetClass schema:Organization ;
+	sh:property [
+		sh:path schema:name ;
+		sh:datatype xsd:string ;
+		sh:minCount 1
+	] .

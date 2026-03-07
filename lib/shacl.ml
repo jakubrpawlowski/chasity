@@ -6,6 +6,12 @@ type property_shape = {
   min_count : int option;
   max_count : int option;
   pattern : string option;
+  class_ : iri option;
+  node : iri option;
+  min_length : int option;
+  max_length : int option;
+  min_inclusive : int option;
+  max_inclusive : int option;
 }
 
 type node_shape = {
@@ -56,6 +62,22 @@ let extract_property_shape store prop_term =
           pattern =
             find_object (sh "pattern") pairs
             |> Option_ext.flat_map string_of_term;
+          class_ =
+            find_object (sh "class") pairs |> Option_ext.flat_map iri_of_term;
+          node =
+            find_object (sh "node") pairs |> Option_ext.flat_map iri_of_term;
+          min_length =
+            find_object (sh "minLength") pairs
+            |> Option_ext.flat_map int_of_term;
+          max_length =
+            find_object (sh "maxLength") pairs
+            |> Option_ext.flat_map int_of_term;
+          min_inclusive =
+            find_object (sh "minInclusive") pairs
+            |> Option_ext.flat_map int_of_term;
+          max_inclusive =
+            find_object (sh "maxInclusive") pairs
+            |> Option_ext.flat_map int_of_term;
         }
 
 let extract_node_shapes store =

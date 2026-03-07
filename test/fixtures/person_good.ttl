@@ -4,4 +4,5 @@
 	a schema:Person ;
 	schema:name "Jakub Pawlowski" ;
 	schema:email "jakub@example.com" ;
-	schema:birthYear 1987 .
+	schema:birthYear 1987 ;
+	schema:employer <http://example.org/w3c> .

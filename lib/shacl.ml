@@ -8,6 +8,7 @@ type property_shape = {
   pattern : string option;
   class_ : iri option;
   node : iri option;
+  in_ : string list;
   min_length : int option;
   max_length : int option;
   min_inclusive : int option;
@@ -45,6 +46,21 @@ let string_of_term = function
   | Ntriples.Term.Literal { value; _ } -> Some value
   | _ -> None
 
+let rec collect_rdf_list store term =
+  let nil = rdf "nil" in
+  if Ntriples.Term.compare term nil = 0 then []
+  else
+    let pairs = Triple_store.find_subject term store in
+    match find_object (rdf "first") pairs with
+    | None -> []
+    | Some first ->
+        let rest =
+          match find_object (rdf "rest") pairs with
+          | Some next -> collect_rdf_list store next
+          | None -> []
+        in
+        first :: rest
+
 let extract_property_shape store prop_term =
   let pairs = Triple_store.find_subject prop_term store in
   match find_object (sh "path") pairs |> Option_ext.flat_map iri_of_term with
@@ -66,6 +82,12 @@ let extract_property_shape store prop_term =
             find_object (sh "class") pairs |> Option_ext.flat_map iri_of_term;
           node =
             find_object (sh "node") pairs |> Option_ext.flat_map iri_of_term;
+          in_ =
+            (match find_object (sh "in") pairs with
+            | Some list_head ->
+                List.filter_map string_of_term
+                  (collect_rdf_list store list_head)
+            | None -> []);
           min_length =
             find_object (sh "minLength") pairs
             |> Option_ext.flat_map int_of_term;

@@ -23,6 +23,13 @@ schema:PersonShape
 		sh:minInclusive 1900 ;
 		sh:maxInclusive 2100
 	] , [
+		sh:path schema:gender ;
+		sh:in (
+			"male"
+			"female"
+		) ;
+		sh:maxCount 1
+	] , [
 		sh:path schema:employer ;
 		sh:class schema:Organization ;
 		sh:node schema:OrganizationShape ;

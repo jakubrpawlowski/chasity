@@ -1,6 +1,6 @@
 let test_parse_person () =
   match Chasity_lib.Ntriples.from_file (Path "fixtures/person.ttl") with
-  | Ok triples -> Alcotest.(check int) "triple count" 24 (List.length triples)
+  | Ok triples -> Alcotest.(check int) "triple count" 32 (List.length triples)
   | Error (Chasity_lib.Ntriples.Riot_failed { path = Path p; exit_code }) ->
       Alcotest.failf "riot failed on %s (exit %d)" p exit_code
 
@@ -17,7 +17,16 @@ let test_extract_person_shape () =
         "target class" "http://schema.org/Person"
         (let (Iri s) = shape.target_class in
          s);
-      Alcotest.(check int) "property count" 4 (List.length shape.properties)
+      Alcotest.(check int) "property count" 5 (List.length shape.properties);
+      let gender =
+        List.find
+          (fun (p : Chasity_lib.Shacl.property_shape) ->
+            let (Iri s) = p.path in
+            s = "http://schema.org/gender")
+          shape.properties
+      in
+      Alcotest.(check (list string))
+        "gender enum values" [ "male"; "female" ] gender.in_
 
 let () =
   Alcotest.run "chasity"

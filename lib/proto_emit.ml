@@ -42,3 +42,8 @@ let local_name_of_iri (Shacl.Iri iri) =
   in
   let start = max after_hash after_slash in
   String.sub iri start (String.length iri - start)
+
+let enum_type_name path = String.capitalize_ascii (local_name_of_iri path)
+
+let enum_value_name ~prefix value =
+  String.uppercase_ascii prefix ^ "_" ^ String.uppercase_ascii value

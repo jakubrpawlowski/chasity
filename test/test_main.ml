@@ -199,6 +199,18 @@ let test_local_name_of_iri () =
     (Proto_emit.local_name_of_iri
        (Shacl.Iri "http://www.w3.org/2001/XMLSchema#string"))
 
+let test_enum_mapping () =
+  let open Chasity_lib in
+  Alcotest.(check string)
+    "enum type name" "Gender"
+    (Proto_emit.enum_type_name (Shacl.Iri "http://schema.org/gender"));
+  Alcotest.(check string)
+    "enum value" "GENDER_MALE"
+    (Proto_emit.enum_value_name ~prefix:"gender" "male");
+  Alcotest.(check string)
+    "enum value" "GENDER_FEMALE"
+    (Proto_emit.enum_value_name ~prefix:"gender" "female")
+
 let () =
   Alcotest.run "chasity"
     [
@@ -216,5 +228,6 @@ let () =
             test_unsupported_datatype;
           Alcotest.test_case "cardinality" `Quick test_cardinality;
           Alcotest.test_case "local_name_of_iri" `Quick test_local_name_of_iri;
+          Alcotest.test_case "enum mapping" `Quick test_enum_mapping;
         ] );
     ]

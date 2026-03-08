@@ -5,6 +5,7 @@
 	schema:name "Jakub Pawlowski" ;
 	schema:email "jakub@example.com" ;
 	schema:birthDateTime "1987-03-19T15:30:00"^^<http://www.w3.org/2001/XMLSchema#dateTime> ;
-	schema:height 180 ;
+	schema:heightCm 180 ;
+	schema:weightLbs 220 ;
 	schema:gender "male" ;
 	schema:employer <http://example.org/w3c> .

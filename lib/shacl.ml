@@ -17,6 +17,9 @@ type property_shape = {
   max_inclusive : int option;
   min_exclusive : int option;
   max_exclusive : int option;
+  name : string option;
+  description : string option;
+  order : int option;
 }
 
 type node_shape = {
@@ -110,6 +113,13 @@ let extract_property_shape store prop_term =
           max_exclusive =
             find_object (sh "maxExclusive") pairs
             |> Option_ext.flat_map int_of_term;
+          name =
+            find_object (sh "name") pairs |> Option_ext.flat_map string_of_term;
+          description =
+            find_object (sh "description") pairs
+            |> Option_ext.flat_map string_of_term;
+          order =
+            find_object (sh "order") pairs |> Option_ext.flat_map int_of_term;
         }
 
 let extract_node_shapes store =

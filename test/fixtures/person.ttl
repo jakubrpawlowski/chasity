@@ -7,33 +7,41 @@ schema:PersonShape
 	sh:targetClass schema:Person ;
 	sh:property [
 		sh:path schema:name ;
+		sh:name "Full name" ;
+		sh:description """The person's full legal name""" ;
+		sh:order 1 ;
 		sh:datatype xsd:string ;
 		sh:minCount 1 ;
 		sh:minLength 1 ;
 		sh:maxLength 200
 	] , [
 		sh:path schema:email ;
+		sh:order 6 ;
 		sh:datatype xsd:string ;
 		sh:minCount 1 ;
 		sh:pattern "^.+@.+\\..+$"
 	] , [
 		sh:path schema:birthDateTime ;
+		sh:order 3 ;
 		sh:datatype xsd:dateTime ;
 		sh:maxCount 1
 	] , [
 		sh:path schema:heightCm ;
+		sh:order 4 ;
 		sh:datatype xsd:integer ;
 		sh:maxCount 1 ;
 		sh:minInclusive 140 ;
 		sh:maxInclusive 210
 	] , [
 		sh:path schema:weightLbs ;
+		sh:order 5 ;
 		sh:datatype xsd:integer ;
 		sh:maxCount 1 ;
 		sh:minExclusive 80 ;
 		sh:maxExclusive 500
 	] , [
 		sh:path schema:gender ;
+		sh:order 2 ;
 		sh:in (
 			"male"
 			"female"
@@ -41,6 +49,7 @@ schema:PersonShape
 		sh:maxCount 1
 	] , [
 		sh:path schema:employer ;
+		sh:order 7 ;
 		sh:class schema:Organization ;
 		sh:node schema:OrganizationShape ;
 		sh:maxCount 1

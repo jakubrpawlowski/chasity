@@ -143,6 +143,62 @@ let test_unsupported_datatype () =
   | Error (Unsupported_datatype _) -> ()
   | Ok proto_type -> Alcotest.failf "expected error but got %s" proto_type
 
+let test_cardinality () =
+  let open Chasity_lib.Proto_emit in
+  let card_testable =
+    Alcotest.testable
+      (fun fmt c ->
+        Fmt.string fmt
+          (match c with
+          | Required -> "Required"
+          | Optional -> "Optional"
+          | Repeated -> "Repeated"))
+      ( = )
+  in
+  let make ?min_count ?max_count () : Chasity_lib.Shacl.property_shape =
+    {
+      path = Iri "test";
+      datatype = None;
+      min_count;
+      max_count;
+      pattern = None;
+      class_ = None;
+      node = None;
+      in_ = [];
+      min_length = None;
+      max_length = None;
+      min_inclusive = None;
+      max_inclusive = None;
+      min_exclusive = None;
+      max_exclusive = None;
+      name = None;
+      description = None;
+      order = None;
+    }
+  in
+  Alcotest.(check card_testable)
+    "minCount=1 maxCount=1" Required
+    (cardinality_of_property (make ~min_count:1 ~max_count:1 ()));
+  Alcotest.(check card_testable)
+    "maxCount=1 no minCount" Optional
+    (cardinality_of_property (make ~max_count:1 ()));
+  Alcotest.(check card_testable)
+    "no maxCount" Repeated
+    (cardinality_of_property (make ()));
+  Alcotest.(check card_testable)
+    "minCount=1 no maxCount" Repeated
+    (cardinality_of_property (make ~min_count:1 ()))
+
+let test_local_name_of_iri () =
+  let open Chasity_lib in
+  Alcotest.(check string)
+    "slash IRI" "Organization"
+    (Proto_emit.local_name_of_iri (Shacl.Iri "http://schema.org/Organization"));
+  Alcotest.(check string)
+    "hash IRI" "string"
+    (Proto_emit.local_name_of_iri
+       (Shacl.Iri "http://www.w3.org/2001/XMLSchema#string"))
+
 let () =
   Alcotest.run "chasity"
     [
@@ -158,5 +214,7 @@ let () =
           Alcotest.test_case "datatype mappings" `Quick test_datatype_mappings;
           Alcotest.test_case "unsupported datatype" `Quick
             test_unsupported_datatype;
+          Alcotest.test_case "cardinality" `Quick test_cardinality;
+          Alcotest.test_case "local_name_of_iri" `Quick test_local_name_of_iri;
         ] );
     ]

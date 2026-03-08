@@ -1,0 +1,53 @@
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix ex: <http://example.org/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+ex:AllTypesShape
+	a sh:NodeShape ;
+	sh:targetClass ex:AllTypes ;
+	sh:property [
+		sh:path ex:stringField ;
+		sh:datatype xsd:string
+	] , [
+		sh:path ex:anyURIField ;
+		sh:datatype xsd:anyURI
+	] , [
+		sh:path ex:dateField ;
+		sh:datatype xsd:date
+	] , [
+		sh:path ex:timeField ;
+		sh:datatype xsd:time
+	] , [
+		sh:path ex:durationField ;
+		sh:datatype xsd:duration
+	] , [
+		sh:path ex:integerField ;
+		sh:datatype xsd:integer
+	] , [
+		sh:path ex:longField ;
+		sh:datatype xsd:long
+	] , [
+		sh:path ex:intField ;
+		sh:datatype xsd:int
+	] , [
+		sh:path ex:nonNegativeIntegerField ;
+		sh:datatype xsd:nonNegativeInteger
+	] , [
+		sh:path ex:floatField ;
+		sh:datatype xsd:float
+	] , [
+		sh:path ex:doubleField ;
+		sh:datatype xsd:double
+	] , [
+		sh:path ex:decimalField ;
+		sh:datatype xsd:decimal
+	] , [
+		sh:path ex:booleanField ;
+		sh:datatype xsd:boolean
+	] , [
+		sh:path ex:base64BinaryField ;
+		sh:datatype xsd:base64Binary
+	] , [
+		sh:path ex:dateTimeField ;
+		sh:datatype xsd:dateTime
+	] .

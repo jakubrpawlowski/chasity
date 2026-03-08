@@ -4,5 +4,7 @@
 	a schema:Person ;
 	schema:name "Jakub Pawlowski" ;
 	schema:email "jakub@example.com" ;
-	schema:birthYear 1987 ;
+	schema:birthDateTime "1987-03-19T15:30:00"^^<http://www.w3.org/2001/XMLSchema#dateTime> ;
+	schema:height 180 ;
+	schema:gender "male" ;
 	schema:employer <http://example.org/w3c> .

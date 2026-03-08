@@ -9,4 +9,8 @@ schema:OrganizationShape
 		sh:path schema:name ;
 		sh:datatype xsd:string ;
 		sh:minCount 1
+	] , [
+		sh:path schema:foundingDate ;
+		sh:datatype xsd:date ;
+		sh:maxCount 1
 	] .

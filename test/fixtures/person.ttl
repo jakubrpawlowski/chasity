@@ -17,11 +17,15 @@ schema:PersonShape
 		sh:minCount 1 ;
 		sh:pattern "^.+@.+\\..+$"
 	] , [
-		sh:path schema:birthYear ;
+		sh:path schema:birthDateTime ;
+		sh:datatype xsd:dateTime ;
+		sh:maxCount 1
+	] , [
+		sh:path schema:height ;
 		sh:datatype xsd:integer ;
 		sh:maxCount 1 ;
-		sh:minInclusive 1900 ;
-		sh:maxInclusive 2100
+		sh:minInclusive 140 ;
+		sh:maxInclusive 210
 	] , [
 		sh:path schema:gender ;
 		sh:in (

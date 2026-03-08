@@ -5,8 +5,9 @@
 set -euo pipefail
 
 check() {
-    local label="$1" shapes="$2" data="$3" expected="$4"
-    if shacl validate --shapes "$shapes" --data "$data" | grep -q "sh:conforms  $expected"; then
+    local label="$1" expected="$2"
+    shift 2
+    if "$@" | grep -q "sh:conforms  $expected"; then
         echo "PASS: $label"
     else
         echo "FAIL: $label"
@@ -14,5 +15,11 @@ check() {
     fi
 }
 
-check "person_good.ttl conforms"    test/fixtures/person.ttl test/fixtures/person_good.ttl true
-check "person_bad.ttl rejected"     test/fixtures/person.ttl test/fixtures/person_bad.ttl  false
+check "person_good.ttl conforms" true \
+    shacl validate --shapes test/fixtures/person.ttl \
+    --data test/fixtures/person_good.ttl \
+    --data test/fixtures/organization_good.ttl
+
+check "person_bad.ttl rejected" false \
+    shacl validate --shapes test/fixtures/person.ttl \
+    --data test/fixtures/person_bad.ttl

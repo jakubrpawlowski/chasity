@@ -1,3 +1,5 @@
+(* AST: in-memory subject-indexed store of parsed triples *)
+
 module TermMap = Map.Make (Ntriples.Term)
 
 type t = (Ntriples.Term.t * Ntriples.Term.t) list TermMap.t

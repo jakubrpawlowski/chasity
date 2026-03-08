@@ -22,3 +22,20 @@ chasity generate --shapes shapes.ttl --out ./proto/
 
 Built for teams that model their domain with RDF ontologies and want type-safe
 gRPC contracts.
+
+## Architecture
+
+Chasity follows a standard compiler pipeline:
+
+```
+.ttl  ->  riot  ->  N-Triples  ->  ntriples.ml  ->  triple store  ->  shacl.ml  ->  .proto
+          ~~~~      ~~~~~~~~~      ~~~~~~~~~~~      ~~~~~~~~~~~~      ~~~~~~~~      ~~~~~~
+          lexer     tokens         parser           AST               IR            codegen
+```
+
+| File                  | Compiler phase         | What it does                                                    |
+| --------------------- | ---------------------- | --------------------------------------------------------------- |
+| `lib/ntriples.ml`     | Lexer/Parser           | Shells out to `riot`, parses N-Triples lines into typed triples |
+| `lib/triple_store.ml` | AST                    | In-memory subject-indexed store of parsed triples               |
+| `lib/shacl.ml`        | Semantic analysis → IR | Extracts typed SHACL shapes from the triple store               |
+| `lib/proto_emit.ml`   | Code generation        | Emits `.proto` files from shapes                                |

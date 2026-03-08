@@ -1,3 +1,5 @@
+(* Semantic analysis: extracts typed SHACL shapes (IR) from the triple store (AST) *)
+
 type iri = Iri of string
 
 type property_shape = {

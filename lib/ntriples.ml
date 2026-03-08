@@ -1,3 +1,5 @@
+(* Lexer/Parser: shells out to riot, parses N-Triples into typed triples *)
+
 module Datatype = struct
   type t = T of string
 

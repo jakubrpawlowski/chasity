@@ -50,6 +50,28 @@ let test_unsupported_datatype () =
   | Error (Unsupported_datatype _) -> ()
   | Ok proto_type -> Alcotest.failf "expected error but got %s" proto_type
 
+let make_prop ?(path = "test") ?min_count ?max_count ?order () :
+    Chasity_lib.Shacl.property_shape =
+  {
+    path = Iri path;
+    datatype = None;
+    min_count;
+    max_count;
+    pattern = None;
+    class_ = None;
+    node = None;
+    in_ = [];
+    min_length = None;
+    max_length = None;
+    min_inclusive = None;
+    max_inclusive = None;
+    min_exclusive = None;
+    max_exclusive = None;
+    name = None;
+    description = None;
+    order;
+  }
+
 let test_cardinality () =
   let open Chasity_lib.Proto_emit in
   let card_testable =
@@ -62,39 +84,43 @@ let test_cardinality () =
           | Repeated -> "Repeated"))
       ( = )
   in
-  let make ?min_count ?max_count () : Chasity_lib.Shacl.property_shape =
-    {
-      path = Iri "test";
-      datatype = None;
-      min_count;
-      max_count;
-      pattern = None;
-      class_ = None;
-      node = None;
-      in_ = [];
-      min_length = None;
-      max_length = None;
-      min_inclusive = None;
-      max_inclusive = None;
-      min_exclusive = None;
-      max_exclusive = None;
-      name = None;
-      description = None;
-      order = None;
-    }
-  in
   Alcotest.(check card_testable)
     "minCount=1 maxCount=1" Required
-    (cardinality_of_property (make ~min_count:1 ~max_count:1 ()));
+    (cardinality_of_property (make_prop ~min_count:1 ~max_count:1 ()));
   Alcotest.(check card_testable)
     "maxCount=1 no minCount" Optional
-    (cardinality_of_property (make ~max_count:1 ()));
+    (cardinality_of_property (make_prop ~max_count:1 ()));
   Alcotest.(check card_testable)
     "no maxCount" Repeated
-    (cardinality_of_property (make ()));
+    (cardinality_of_property (make_prop ()));
   Alcotest.(check card_testable)
     "minCount=1 no maxCount" Repeated
-    (cardinality_of_property (make ~min_count:1 ()))
+    (cardinality_of_property (make_prop ~min_count:1 ()))
+
+let test_sort_by_order () =
+  let open Chasity_lib.Proto_emit in
+  let a = make_prop ~path:"a" ~order:3 () in
+  let b = make_prop ~path:"b" () in
+  let c = make_prop ~path:"c" ~order:1 () in
+  let d = make_prop ~path:"d" () in
+  let e = make_prop ~path:"e" ~order:2 () in
+  let sorted =
+    sort_by_order
+      [
+        (a, "string"); (b, "string"); (c, "string"); (d, "string"); (e, "string");
+      ]
+  in
+  let paths =
+    List.map
+      (fun ((p : Chasity_lib.Shacl.property_shape), _) ->
+        let (Iri s) = p.path in
+        s)
+      sorted
+  in
+  Alcotest.(check (list string))
+    "ordered first, then unordered"
+    [ "c"; "e"; "a"; "b"; "d" ]
+    paths
 
 let test_local_name_of_iri () =
   let open Chasity_lib in
@@ -118,12 +144,63 @@ let test_enum_mapping () =
     "enum value" "GENDER_FEMALE"
     (Proto_emit.enum_value_name ~prefix:"gender" "female")
 
+let test_snake_case () =
+  let open Chasity_lib.Proto_emit in
+  Alcotest.(check string)
+    "camelCase" "birth_date_time"
+    (snake_case "birthDateTime");
+  Alcotest.(check string) "already snake" "name" (snake_case "name");
+  Alcotest.(check string) "leading upper" "person" (snake_case "Person")
+
+let test_emit_proto () =
+  match Chasity_lib.Ntriples.from_file (Path "fixtures/person.ttl") with
+  | Error (Chasity_lib.Ntriples.Riot_failed { path = Path p; exit_code }) ->
+      Alcotest.failf "riot failed on %s (exit %d)" p exit_code
+  | Ok triples -> (
+      let store = Chasity_lib.Triple_store.of_triples triples in
+      let shapes = Chasity_lib.Shacl.extract_node_shapes store in
+      let shape = List.hd shapes in
+      let result = Chasity_lib.Proto_emit.emit_proto shape in
+      match result with
+      | Error _ -> Alcotest.fail "emit_proto returned errors"
+      | Ok proto ->
+          let expected =
+            String.concat "\n"
+              [
+                "syntax = \"proto3\";";
+                "";
+                "import \"google/protobuf/timestamp.proto\";";
+                "";
+                "enum Gender {";
+                "  GENDER_UNSPECIFIED = 0;";
+                "  GENDER_MALE = 1;";
+                "  GENDER_FEMALE = 2;";
+                "}";
+                "";
+                "message Person {";
+                "  // Full name - The person's full legal name";
+                "  repeated string name = 1;";
+                "  optional Gender gender = 2;";
+                "  optional google.protobuf.Timestamp birth_date_time = 3;";
+                "  optional int64 height_cm = 4;";
+                "  optional int64 weight_lbs = 5;";
+                "  repeated string email = 6;";
+                "  optional Organization employer = 7;";
+                "}";
+                "";
+              ]
+          in
+          Alcotest.(check string) "proto output" expected proto)
+
 let suite =
   ( "proto_emit",
     [
       Alcotest.test_case "datatype mappings" `Quick test_datatype_mappings;
       Alcotest.test_case "unsupported datatype" `Quick test_unsupported_datatype;
       Alcotest.test_case "cardinality" `Quick test_cardinality;
+      Alcotest.test_case "sort_by_order" `Quick test_sort_by_order;
       Alcotest.test_case "local_name_of_iri" `Quick test_local_name_of_iri;
       Alcotest.test_case "enum mapping" `Quick test_enum_mapping;
+      Alcotest.test_case "snake_case" `Quick test_snake_case;
+      Alcotest.test_case "emit PersonShape" `Quick test_emit_proto;
     ] )

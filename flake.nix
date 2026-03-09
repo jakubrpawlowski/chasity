@@ -19,8 +19,8 @@
           pkgs = nixpkgs.legacyPackages.${system};
           ocamlPackages = pkgs.ocamlPackages;
         in
-        {
-          default = ocamlPackages.buildDunePackage {
+        let
+          raw = ocamlPackages.buildDunePackage {
             pname = "chasity";
             version = "0.1.0";
             duneVersion = "3";
@@ -34,6 +34,20 @@
 
             strictDeps = true;
           };
+        in
+        {
+          inherit raw;
+          default =
+            pkgs.runCommand "chasity"
+              {
+                nativeBuildInputs = [ pkgs.makeWrapper ];
+              }
+              ''
+                mkdir -p $out/bin
+                cp ${raw}/bin/chasity $out/bin/chasity
+                wrapProgram $out/bin/chasity \
+                  --prefix PATH : ${pkgs.lib.makeBinPath [ pkgs.apache-jena ]}
+              '';
         }
       );
 
@@ -54,7 +68,7 @@
             ];
 
             inputsFrom = [
-              self.packages.${system}.default
+              self.packages.${system}.raw
             ];
           };
         }

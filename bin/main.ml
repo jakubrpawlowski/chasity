@@ -55,7 +55,7 @@ let generate_cmd =
         match List.concat_map (process_file out) files with
         | [] -> `Ok ()
         | failed ->
-            List.iter (Fmt.epr "failed: %s@.") failed;
+            List.iter (Fmt.epr "chasity: %s@.") failed;
             `Error (false, "some files failed"))
   in
   let info = Cmd.info "generate" ~doc in

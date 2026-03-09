@@ -35,8 +35,18 @@ let generate_cmd =
         let name =
           Chasity_lib.Proto_emit.local_name_of_iri shape.target_class
         in
+        let package_dir =
+          String.split_on_char '.' package |> String.concat Filename.dir_sep
+        in
+        let dir = Filename.concat out package_dir in
+        let rec mkdir_p path =
+          if not (Sys.file_exists path) then (
+            mkdir_p (Filename.dirname path);
+            Sys.mkdir path 0o755)
+        in
+        mkdir_p dir;
         let out_path =
-          Filename.concat out (Chasity_lib.Proto_emit.snake_case name ^ ".proto")
+          Filename.concat dir (Chasity_lib.Proto_emit.snake_case name ^ ".proto")
         in
         let oc = open_out out_path in
         output_string oc proto;

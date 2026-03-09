@@ -24,6 +24,13 @@ chasity generate --shapes person.ttl --out ./proto/ --package mycompany.api.v1
 chasity generate --shapes shapes/ --out ./proto/ --package mycompany.api.v1
 ```
 
+The output directory needs a `buf.yaml` for `buf lint` to work. Create one if
+you don't have it:
+
+```
+echo 'version: v2' > proto/buf.yaml
+```
+
 Built for teams that model their domain with RDF ontologies and want type-safe
 gRPC contracts.
 

@@ -160,13 +160,15 @@ let test_emit_proto () =
       let store = Chasity_lib.Triple_store.of_triples triples in
       let shapes = Chasity_lib.Shacl.extract_node_shapes store in
       let shape = List.hd shapes in
-      match Chasity_lib.Proto_emit.emit_proto shape with
+      match Chasity_lib.Proto_emit.emit_proto ~package:"test.v1" shape with
       | Error _ -> Alcotest.fail "emit_proto returned errors"
       | Ok proto ->
           let expected =
             String.concat "\n"
               [
                 "syntax = \"proto3\";";
+                "";
+                "package test.v1;";
                 "";
                 "import \"google/protobuf/timestamp.proto\";";
                 "";
@@ -201,7 +203,7 @@ let test_emit_bad_datatype () =
       let store = Chasity_lib.Triple_store.of_triples triples in
       let shapes = Chasity_lib.Shacl.extract_node_shapes store in
       let shape = List.hd shapes in
-      match Chasity_lib.Proto_emit.emit_proto shape with
+      match Chasity_lib.Proto_emit.emit_proto ~package:"test.v1" shape with
       | Ok _ -> Alcotest.fail "expected error but got Ok"
       | Error errs -> Alcotest.(check int) "error count" 1 (List.length errs))
 

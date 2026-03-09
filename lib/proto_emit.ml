@@ -126,7 +126,7 @@ let emit_enum (prop : Shacl.property_shape) =
      ]
     @ values @ [ "}\n" ])
 
-let emit_proto (shape : Shacl.node_shape) =
+let emit_proto ~package (shape : Shacl.node_shape) =
   match resolve_properties shape.properties with
   | Error errs -> Error errs
   | Ok resolved ->
@@ -137,7 +137,9 @@ let emit_proto (shape : Shacl.node_shape) =
           (fun (_, type_name) -> type_name = "google.protobuf.Timestamp")
           sorted
       in
-      let header = "syntax = \"proto3\";\n\n" in
+      let header =
+        Printf.sprintf "syntax = \"proto3\";\n\npackage %s;\n\n" package
+      in
       let imports =
         if needs_timestamp then
           "import \"google/protobuf/timestamp.proto\";\n\n"

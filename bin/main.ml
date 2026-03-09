@@ -10,6 +10,10 @@ let generate_cmd =
     let doc = "Output directory for generated .proto files." in
     Arg.(value & opt dir "." & info [ "out" ] ~doc)
   in
+  let package =
+    let doc = "Proto package name (e.g. mycompany.api.v1)." in
+    Arg.(required & opt (some string) None & info [ "package" ] ~doc)
+  in
   let collect_ttl_files path =
     if not (Sys.file_exists path) then
       Error (Printf.sprintf "%s: not found" path)
@@ -20,8 +24,8 @@ let generate_cmd =
         |> List.map (Filename.concat path))
     else Ok [ path ]
   in
-  let process_shape out file shape =
-    match Chasity_lib.Proto_emit.emit_proto shape with
+  let process_shape ~package out file shape =
+    match Chasity_lib.Proto_emit.emit_proto ~package shape with
     | Error errs ->
         List.map
           (fun (Chasity_lib.Proto_emit.Unsupported_datatype (Iri iri)) ->
@@ -39,27 +43,27 @@ let generate_cmd =
         close_out oc;
         []
   in
-  let process_file out file =
+  let process_file ~package out file =
     match Chasity_lib.Ntriples.from_file (Path file) with
     | Error (Riot_failed { path = Path p; exit_code }) ->
         [ Printf.sprintf "%s: riot failed (exit %d)" p exit_code ]
     | Ok triples ->
         let store = Chasity_lib.Triple_store.of_triples triples in
         let shapes = Chasity_lib.Shacl.extract_node_shapes store in
-        List.concat_map (process_shape out file) shapes
+        List.concat_map (process_shape ~package out file) shapes
   in
-  let run shapes out =
+  let run shapes out package =
     match collect_ttl_files shapes with
     | Error msg -> `Error (false, msg)
     | Ok files -> (
-        match List.concat_map (process_file out) files with
+        match List.concat_map (process_file ~package out) files with
         | [] -> `Ok ()
         | failed ->
             List.iter (Fmt.epr "chasity: %s@.") failed;
             `Error (false, "some files failed"))
   in
   let info = Cmd.info "generate" ~doc in
-  Cmd.v info Term.(ret (const run $ shapes $ out))
+  Cmd.v info Term.(ret (const run $ shapes $ out $ package))
 
 let main_cmd =
   let doc = "SHACL to Protobuf transpiler." in

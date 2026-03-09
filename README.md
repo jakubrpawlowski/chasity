@@ -10,9 +10,34 @@ flowchart LR
     style B color:#ff00ff
 ```
 
-## Prerequisites
+## Install
 
-- [Nix](https://nixos.org/) with flakes enabled
+### With Nix (recommended)
+
+No additional dependencies needed - Nix handles everything.
+
+Add chasity to your flake inputs:
+
+```nix
+{
+  inputs.chasity.url = "github:jakubrpawlowski/chasity";
+}
+```
+
+Or try it out in a shell:
+
+```
+nix shell github:jakubrpawlowski/chasity
+```
+
+### Without Nix
+
+Download the binary from
+[GitHub Releases](https://github.com/jakubrpawlowski/chasity/releases) and add
+it to your PATH. You also need these on PATH:
+
+- [Apache Jena](https://jena.apache.org/) (provides `riot`)
+- [buf](https://buf.build/) (provides `buf format`)
 
 ## Usage
 

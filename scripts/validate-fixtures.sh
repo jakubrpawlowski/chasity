@@ -17,9 +17,9 @@ check() {
 
 check "person_good.ttl conforms" true \
     shacl validate --shapes test/fixtures/person.ttl \
-    --data test/fixtures/person_good.ttl \
-    --data test/fixtures/organization_good.ttl
+    --data test/fixtures/data/person_good.ttl \
+    --data test/fixtures/data/organization_good.ttl
 
 check "person_bad.ttl rejected" false \
     shacl validate --shapes test/fixtures/person.ttl \
-    --data test/fixtures/person_bad.ttl
+    --data test/fixtures/data/person_bad.ttl

@@ -1,0 +1,12 @@
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix schema: <http://schema.org/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+schema:BrokenShape
+	a sh:NodeShape ;
+	sh:targetClass schema:Broken ;
+	sh:property [
+		sh:path schema:weirdField ;
+		sh:datatype xsd:madeUpType ;
+		sh:order 1
+	] .

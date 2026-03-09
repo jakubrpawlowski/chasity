@@ -3,23 +3,60 @@ open Cmdliner
 let generate_cmd =
   let doc = "Generate .proto files from SHACL shapes." in
   let shapes =
-    let doc = "Path to SHACL shapes file (.ttl)." in
-    Arg.(required & opt (some file) None & info [ "shapes" ] ~doc)
+    let doc = "Path to SHACL shapes file or directory of .ttl files." in
+    Arg.(required & opt (some string) None & info [ "shapes" ] ~doc)
   in
   let out =
     let doc = "Output directory for generated .proto files." in
     Arg.(value & opt dir "." & info [ "out" ] ~doc)
   in
-  let run shapes _out =
-    match Chasity_lib.Ntriples.from_file (Path shapes) with
-    | Ok triples ->
-        List.iter
-          (fun t -> Fmt.pr "%a@." Chasity_lib.Ntriples.pp_triple t)
-          triples;
-        `Ok ()
+  let collect_ttl_files path =
+    if not (Sys.file_exists path) then
+      Error (Printf.sprintf "%s: not found" path)
+    else if Sys.is_directory path then
+      Ok
+        (Sys.readdir path |> Array.to_list
+        |> List.filter (fun f -> Filename.check_suffix f ".ttl")
+        |> List.map (Filename.concat path))
+    else Ok [ path ]
+  in
+  let process_shape out file shape =
+    match Chasity_lib.Proto_emit.emit_proto shape with
+    | Error errs ->
+        List.map
+          (fun (Chasity_lib.Proto_emit.Unsupported_datatype (Iri iri)) ->
+            Printf.sprintf "%s: unsupported datatype %s" file iri)
+          errs
+    | Ok proto ->
+        let name =
+          Chasity_lib.Proto_emit.local_name_of_iri shape.target_class
+        in
+        let out_path =
+          Filename.concat out (Chasity_lib.Proto_emit.snake_case name ^ ".proto")
+        in
+        let oc = open_out out_path in
+        output_string oc proto;
+        close_out oc;
+        []
+  in
+  let process_file out file =
+    match Chasity_lib.Ntriples.from_file (Path file) with
     | Error (Riot_failed { path = Path p; exit_code }) ->
-        Fmt.epr "riot failed on %s (exit %d)@." p exit_code;
-        `Error (false, "riot failed")
+        [ Printf.sprintf "%s: riot failed (exit %d)" p exit_code ]
+    | Ok triples ->
+        let store = Chasity_lib.Triple_store.of_triples triples in
+        let shapes = Chasity_lib.Shacl.extract_node_shapes store in
+        List.concat_map (process_shape out file) shapes
+  in
+  let run shapes out =
+    match collect_ttl_files shapes with
+    | Error msg -> `Error (false, msg)
+    | Ok files -> (
+        match List.concat_map (process_file out) files with
+        | [] -> `Ok ()
+        | failed ->
+            List.iter (Fmt.epr "failed: %s@.") failed;
+            `Error (false, "some files failed"))
   in
   let info = Cmd.info "generate" ~doc in
   Cmd.v info Term.(ret (const run $ shapes $ out))

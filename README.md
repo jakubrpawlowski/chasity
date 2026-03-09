@@ -17,7 +17,11 @@ flowchart LR
 ## Usage
 
 ```
-chasity generate --shapes shapes.ttl --out ./proto/
+# single file
+chasity generate --shapes person.ttl --out ./proto/
+
+# directory (processes all .ttl files)
+chasity generate --shapes shapes/ --out ./proto/
 ```
 
 Built for teams that model their domain with RDF ontologies and want type-safe

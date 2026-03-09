@@ -22,7 +22,7 @@
         let
           raw = ocamlPackages.buildDunePackage {
             pname = "chasity";
-            version = "0.1.0";
+            version = "0.1.1";
             duneVersion = "3";
             src = ./.;
 

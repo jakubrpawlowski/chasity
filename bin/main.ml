@@ -83,7 +83,7 @@ let generate_cmd =
 
 let main_cmd =
   let doc = "SHACL to Protobuf transpiler." in
-  let info = Cmd.info "chasity" ~version:"0.1.0" ~doc in
+  let info = Cmd.info "chasity" ~version:"0.1.1" ~doc in
   Cmd.group info [ generate_cmd ]
 
 let () = exit (Cmd.eval main_cmd)

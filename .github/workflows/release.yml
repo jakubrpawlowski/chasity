@@ -16,12 +16,10 @@ jobs:
             name: linux-arm64
           - os: macos-latest
             name: darwin-arm64
-          - os: macos-13
-            name: darwin-amd64
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-      - uses: cachix/install-nix-action@v27
+      - uses: DeterminateSystems/nix-installer-action@main
       - run: nix build .#raw
       - run: tar czf chasity-${{ matrix.name }}.tar.gz -C result/bin chasity
       - uses: actions/upload-artifact@v4

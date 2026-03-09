@@ -46,7 +46,12 @@
                 mkdir -p $out/bin
                 cp ${raw}/bin/chasity $out/bin/chasity
                 wrapProgram $out/bin/chasity \
-                  --prefix PATH : ${pkgs.lib.makeBinPath [ pkgs.apache-jena ]}
+                  --prefix PATH : ${
+                    pkgs.lib.makeBinPath [
+                      pkgs.apache-jena
+                      pkgs.buf
+                    ]
+                  }
               '';
         }
       );

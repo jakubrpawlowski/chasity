@@ -31,7 +31,7 @@ let generate_cmd =
           (fun (Chasity_lib.Proto_emit.Unsupported_datatype (Iri iri)) ->
             Printf.sprintf "%s: unsupported datatype %s" file iri)
           errs
-    | Ok proto ->
+    | Ok proto -> (
         let name =
           Chasity_lib.Proto_emit.local_name_of_iri shape.target_class
         in
@@ -51,7 +51,13 @@ let generate_cmd =
         let oc = open_out out_path in
         output_string oc proto;
         close_out oc;
-        []
+        match
+          Sys.command
+            (Printf.sprintf "buf format -w %s" (Filename.quote out_path))
+        with
+        | 0 -> []
+        | code ->
+            [ Printf.sprintf "%s: buf format failed (exit %d)" out_path code ])
   in
   let process_file ~package out file =
     match Chasity_lib.Ntriples.from_file (Path file) with

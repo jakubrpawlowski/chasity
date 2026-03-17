@@ -11,6 +11,7 @@ type property_shape = {
   class_ : iri option;
   node : iri option;
   in_ : string list;
+  or_ : iri list;
   min_length : int option;
   max_length : int option;
   min_inclusive : int option;
@@ -93,6 +94,16 @@ let extract_property_shape store prop_term =
             (match find_object (sh "in") pairs with
             | Some list_head ->
                 List.filter_map string_of_term
+                  (collect_rdf_list store list_head)
+            | None -> []);
+          or_ =
+            (match find_object (sh "or") pairs with
+            | Some list_head ->
+                List.filter_map
+                  (fun term ->
+                    let shape_pairs = Triple_store.find_subject term store in
+                    find_object (sh "class") shape_pairs
+                    |> Option_ext.flat_map iri_of_term)
                   (collect_rdf_list store list_head)
             | None -> []);
           min_length =

@@ -61,6 +61,7 @@ let make_prop ?(path = "test") ?min_count ?max_count ?order () :
     class_ = None;
     node = None;
     in_ = [];
+    or_ = [];
     min_length = None;
     max_length = None;
     min_inclusive = None;

@@ -194,6 +194,38 @@ let test_emit_proto () =
           in
           Alcotest.(check string) "proto output" expected proto)
 
+let test_emit_or_shape () =
+  match Chasity_lib.Ntriples.from_file (Path "fixtures/or_shape.ttl") with
+  | Error (Chasity_lib.Ntriples.Riot_failed { path = Path p; exit_code }) ->
+      Alcotest.failf "riot failed on %s (exit %d)" p exit_code
+  | Ok triples -> (
+      let store = Chasity_lib.Triple_store.of_triples triples in
+      let shapes = Chasity_lib.Shacl.extract_node_shapes store in
+      let shape = List.hd shapes in
+      match Chasity_lib.Proto_emit.emit_proto ~package:"test.v1" shape with
+      | Error _ -> Alcotest.fail "emit_proto returned errors"
+      | Ok proto ->
+          let expected =
+            String.concat "\n"
+              [
+                "syntax = \"proto3\";";
+                "";
+                "package test.v1;";
+                "";
+                "message Payment {";
+                "  // Paid with";
+                "  oneof paid_with {";
+                "    CreditCard paid_with_credit_card = 1;";
+                "    BankAccount paid_with_bank_account = 2;";
+                "  }";
+                "  // Amount in cents";
+                "  int64 amount_cents = 3;";
+                "}";
+                "";
+              ]
+          in
+          Alcotest.(check string) "or shape proto output" expected proto)
+
 let test_emit_bad_datatype () =
   match
     Chasity_lib.Ntriples.from_file (Path "fixtures/bad_shapes/bad_shape.ttl")
@@ -228,6 +260,7 @@ let suite =
       Alcotest.test_case "enum mapping" `Quick test_enum_mapping;
       Alcotest.test_case "snake_case" `Quick test_snake_case;
       Alcotest.test_case "emit PersonShape" `Quick test_emit_proto;
+      Alcotest.test_case "emit sh:or oneof" `Quick test_emit_or_shape;
       Alcotest.test_case "reject bad datatype" `Quick test_emit_bad_datatype;
       Alcotest.test_case "reject invalid turtle" `Quick test_emit_invalid_turtle;
     ] )

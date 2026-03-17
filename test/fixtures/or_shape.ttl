@@ -1,0 +1,26 @@
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix ex: <http://example.org/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+ex:PaymentShape
+	a sh:NodeShape ;
+	sh:targetClass ex:Payment ;
+	sh:property [
+		sh:path ex:amountCents ;
+		sh:datatype xsd:integer ;
+		sh:minCount 1 ;
+		sh:maxCount 1 ;
+		sh:name "Amount in cents"
+	] , [
+		sh:path ex:paidWith ;
+		sh:or (
+			[
+				sh:class ex:CreditCard
+			]
+			[
+				sh:class ex:BankAccount
+			]
+		) ;
+		sh:minCount 1 ;
+		sh:name "Paid with"
+	] .

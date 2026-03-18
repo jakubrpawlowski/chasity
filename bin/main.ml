@@ -28,8 +28,13 @@ let generate_cmd =
     match Chasity_lib.Proto_emit.emit_proto ~package shape with
     | Error errs ->
         List.map
-          (fun (Chasity_lib.Proto_emit.Unsupported_datatype (Iri iri)) ->
-            Printf.sprintf "%s: unsupported datatype %s" file iri)
+          (fun err ->
+            match err with
+            | Chasity_lib.Proto_emit.Unsupported_datatype (Iri iri) ->
+                Printf.sprintf "%s: unsupported datatype %s" file iri
+            | Chasity_lib.Proto_emit.Fractional_constraint (Iri iri) ->
+                Printf.sprintf "%s: fractional constraint on integer field %s"
+                  file iri)
           errs
     | Ok proto -> (
         let name =

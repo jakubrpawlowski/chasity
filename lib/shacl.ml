@@ -14,10 +14,10 @@ type property_shape = {
   or_ : iri list;
   min_length : int option;
   max_length : int option;
-  min_inclusive : int option;
-  max_inclusive : int option;
-  min_exclusive : int option;
-  max_exclusive : int option;
+  min_inclusive : float option;
+  max_inclusive : float option;
+  min_exclusive : float option;
+  max_exclusive : float option;
   name : string option;
   description : string option;
   order : int option;
@@ -48,6 +48,10 @@ let iri_of_term = function Ntriples.Term.Iri s -> Some (Iri s) | _ -> None
 
 let int_of_term = function
   | Ntriples.Term.Literal { value; _ } -> int_of_string_opt value
+  | _ -> None
+
+let float_of_term = function
+  | Ntriples.Term.Literal { value; _ } -> float_of_string_opt value
   | _ -> None
 
 let string_of_term = function
@@ -114,16 +118,16 @@ let extract_property_shape store prop_term =
             |> Option_ext.flat_map int_of_term;
           min_inclusive =
             find_object (sh "minInclusive") pairs
-            |> Option_ext.flat_map int_of_term;
+            |> Option_ext.flat_map float_of_term;
           max_inclusive =
             find_object (sh "maxInclusive") pairs
-            |> Option_ext.flat_map int_of_term;
+            |> Option_ext.flat_map float_of_term;
           min_exclusive =
             find_object (sh "minExclusive") pairs
-            |> Option_ext.flat_map int_of_term;
+            |> Option_ext.flat_map float_of_term;
           max_exclusive =
             find_object (sh "maxExclusive") pairs
-            |> Option_ext.flat_map int_of_term;
+            |> Option_ext.flat_map float_of_term;
           name =
             find_object (sh "name") pairs |> Option_ext.flat_map string_of_term;
           description =

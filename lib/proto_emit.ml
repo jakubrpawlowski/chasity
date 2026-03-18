@@ -1,6 +1,8 @@
 (* Code generation: emits .proto files from SHACL shapes (IR) *)
 
-type error = Unsupported_datatype of Shacl.iri
+type error =
+  | Unsupported_datatype of Shacl.iri
+  | Fractional_constraint of Shacl.iri
 
 let proto_type_of_datatype (Shacl.Iri iri) =
   match iri with
@@ -136,9 +138,10 @@ let emit_field resolved_type (prop : Shacl.property_shape) field_num =
         | Optional -> "optional "
         | Repeated -> "repeated "
       in
+      let options = Validate_emit.emit_field_options type_name prop in
       emit_comment prop
-      ^ Printf.sprintf "  %s%s %s = %d;\n" label type_name
-          (field_name prop.path) field_num
+      ^ Printf.sprintf "  %s%s %s = %d%s;\n" label type_name
+          (field_name prop.path) field_num options
   | Oneof variants ->
       let base = field_name prop.path in
       let inner =
@@ -171,33 +174,63 @@ let emit_proto ~package (shape : Shacl.node_shape) =
   match resolve_properties shape.properties with
   | Error errs -> Error errs
   | Ok resolved ->
-      let sorted = sort_by_order resolved in
-      let message_name = local_name_of_iri shape.target_class in
-      let needs_timestamp =
-        List.exists
-          (fun (_, resolved) -> resolved = Simple "google.protobuf.Timestamp")
-          sorted
-      in
-      let header =
-        Printf.sprintf "syntax = \"proto3\";\n\npackage %s;\n\n" package
-      in
-      let imports =
-        if needs_timestamp then
-          "import \"google/protobuf/timestamp.proto\";\n\n"
-        else ""
-      in
-      let enums =
+      let constraint_errors =
         List.filter_map
-          (fun ((prop : Shacl.property_shape), _) ->
-            if prop.in_ <> [] then Some (emit_enum prop ^ "\n") else None)
-          sorted
+          (fun ((prop : Shacl.property_shape), resolved) ->
+            match resolved with
+            | Simple type_name
+              when Validate_emit.has_fractional_int_constraints type_name prop
+              ->
+                Some (Fractional_constraint prop.path)
+            | _ -> None)
+          resolved
       in
-      let fields =
-        assign_field_numbers sorted
-        |> List.map (fun (prop, resolved, num) -> emit_field resolved prop num)
-      in
-      Ok
-        (String.concat ""
-           ([ header; imports ] @ enums
-           @ [ Printf.sprintf "message %s {\n" message_name ]
-           @ fields @ [ "}\n" ]))
+      if constraint_errors <> [] then Error constraint_errors
+      else
+        let sorted = sort_by_order resolved in
+        let message_name = local_name_of_iri shape.target_class in
+        let needs_timestamp =
+          List.exists
+            (fun (_, resolved) -> resolved = Simple "google.protobuf.Timestamp")
+            sorted
+        in
+        let needs_validate =
+          List.exists
+            (fun ((prop : Shacl.property_shape), resolved) ->
+              match resolved with
+              | Simple type_name -> Validate_emit.has_constraints type_name prop
+              | Oneof _ -> false)
+            sorted
+        in
+        let header =
+          Printf.sprintf "syntax = \"proto3\";\n\npackage %s;\n\n" package
+        in
+        let imports =
+          String.concat ""
+            (List.filter_map Fun.id
+               [
+                 (if needs_validate then
+                    Some "import \"buf/validate/validate.proto\";\n"
+                  else None);
+                 (if needs_timestamp then
+                    Some "import \"google/protobuf/timestamp.proto\";\n"
+                  else None);
+               ])
+          |> fun s -> if s = "" then "" else s ^ "\n"
+        in
+        let enums =
+          List.filter_map
+            (fun ((prop : Shacl.property_shape), _) ->
+              if prop.in_ <> [] then Some (emit_enum prop ^ "\n") else None)
+            sorted
+        in
+        let fields =
+          assign_field_numbers sorted
+          |> List.map (fun (prop, resolved, num) ->
+                 emit_field resolved prop num)
+        in
+        Ok
+          (String.concat ""
+             ([ header; imports ] @ enums
+             @ [ Printf.sprintf "message %s {\n" message_name ]
+             @ fields @ [ "}\n" ]))

@@ -53,19 +53,19 @@ let test_extract_person_shape () =
       let height = find "http://schema.org/heightCm" in
       Alcotest.(check (option int))
         "heightCm maxCount" (Some 1) height.max_count;
-      Alcotest.(check (option int))
-        "heightCm minInclusive" (Some 140) height.min_inclusive;
-      Alcotest.(check (option int))
-        "heightCm maxInclusive" (Some 210) height.max_inclusive;
+      Alcotest.(check (option (float 0.)))
+        "heightCm minInclusive" (Some 140.) height.min_inclusive;
+      Alcotest.(check (option (float 0.)))
+        "heightCm maxInclusive" (Some 210.) height.max_inclusive;
       Alcotest.(check (option int)) "heightCm order" (Some 4) height.order;
       (* weightLbs: datatype, maxCount, minExclusive, maxExclusive *)
       let weight = find "http://schema.org/weightLbs" in
       Alcotest.(check (option int))
         "weightLbs maxCount" (Some 1) weight.max_count;
-      Alcotest.(check (option int))
-        "weightLbs minExclusive" (Some 80) weight.min_exclusive;
-      Alcotest.(check (option int))
-        "weightLbs maxExclusive" (Some 500) weight.max_exclusive;
+      Alcotest.(check (option (float 0.)))
+        "weightLbs minExclusive" (Some 80.) weight.min_exclusive;
+      Alcotest.(check (option (float 0.)))
+        "weightLbs maxExclusive" (Some 500.) weight.max_exclusive;
       Alcotest.(check (option int)) "weightLbs order" (Some 5) weight.order;
       (* gender: in_, maxCount *)
       let gender = find "http://schema.org/gender" in

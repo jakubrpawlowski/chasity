@@ -48,6 +48,9 @@ let test_unsupported_datatype () =
   let iri = Chasity_lib.Shacl.Iri "http://example.org/madeUpType" in
   match Chasity_lib.Proto_emit.proto_type_of_datatype iri with
   | Error (Unsupported_datatype _) -> ()
+  | Error (Fractional_constraint _) ->
+      Alcotest.fail
+        "expected Unsupported_datatype but got Fractional_constraint"
   | Ok proto_type -> Alcotest.failf "expected error but got %s" proto_type
 
 let make_prop ?(path = "test") ?min_count ?max_count ?order () :
@@ -171,6 +174,7 @@ let test_emit_proto () =
                 "";
                 "package test.v1;";
                 "";
+                "import \"buf/validate/validate.proto\";";
                 "import \"google/protobuf/timestamp.proto\";";
                 "";
                 "enum Gender {";
@@ -181,12 +185,18 @@ let test_emit_proto () =
                 "";
                 "message Person {";
                 "  // Full name - The person's full legal name";
-                "  repeated string name = 1;";
+                "  repeated string name = 1 [(buf.validate.field).string = \
+                 {min_len: 1, max_len: 200}, \
+                 (buf.validate.field).repeated.min_items = 1];";
                 "  optional Gender gender = 2;";
                 "  optional google.protobuf.Timestamp birth_date_time = 3;";
-                "  optional int64 height_cm = 4;";
-                "  optional int64 weight_lbs = 5;";
-                "  repeated string email = 6;";
+                "  optional int64 height_cm = 4 [(buf.validate.field).int64 = \
+                 {gte: 140, lte: 210}];";
+                "  optional int64 weight_lbs = 5 [(buf.validate.field).int64 = \
+                 {gt: 80, lt: 500}];";
+                "  repeated string email = 6 [(buf.validate.field).string = \
+                 {pattern: \"^.+@.+\\\\..+$\"}, \
+                 (buf.validate.field).repeated.min_items = 1];";
                 "  optional Organization employer = 7;";
                 "}";
                 "";

@@ -8,9 +8,9 @@ default:
 build:
     {{nix}} dune build
 
-# Recompile and test on file changes
+# Recompile and run tests on file changes
 watch:
-    {{nix}} dune runtest --watch
+    {{nix}} dune build @all @runtest --watch
 
 # Run chasity with arbitrary arguments, e.g. `just run generate --shapes foo.ttl`
 run *ARGS:

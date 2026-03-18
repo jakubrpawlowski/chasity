@@ -54,8 +54,11 @@ chasity generate --shapes shapes/ --out ./proto/ --package mycompany.api.v1
 The output directory needs a `buf.yaml` for `buf lint` to work. Create one if
 you don't have it:
 
-```
-echo 'version: v2' > proto/buf.yaml
+```yaml
+# proto/buf.yaml
+version: v2
+deps:
+  - buf.build/bufbuild/protovalidate
 ```
 
 ## Architecture

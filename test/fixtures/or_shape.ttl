@@ -2,6 +2,26 @@
 @prefix ex: <http://example.org/> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
+ex:CreditCardShape
+	a sh:NodeShape ;
+	sh:targetClass ex:CreditCard ;
+	sh:property [
+		sh:path ex:cardNumber ;
+		sh:datatype xsd:string ;
+		sh:minCount 1 ;
+		sh:maxCount 1
+	] .
+
+ex:BankAccountShape
+	a sh:NodeShape ;
+	sh:targetClass ex:BankAccount ;
+	sh:property [
+		sh:path ex:accountNumber ;
+		sh:datatype xsd:string ;
+		sh:minCount 1 ;
+		sh:maxCount 1
+	] .
+
 ex:PaymentShape
 	a sh:NodeShape ;
 	sh:targetClass ex:Payment ;

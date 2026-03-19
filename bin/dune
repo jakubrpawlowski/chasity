@@ -1,4 +1,4 @@
 (executable
  (name main)
  (public_name chasity)
- (libraries chasity_lib cmdliner fmt))
+ (libraries chasity_lib cmdliner fmt fmt.tty))

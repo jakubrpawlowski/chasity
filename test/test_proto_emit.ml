@@ -126,6 +126,54 @@ let test_sort_by_order () =
     [ "c"; "e"; "a"; "b"; "d" ]
     paths
 
+let make_shape ?(props = []) iri cls : Chasity_lib.Shacl.node_shape =
+  { iri = Iri iri; target_class = Iri cls; properties = props }
+
+let test_sort_shapes () =
+  let open Chasity_lib in
+  (* A references B via sh:class, B references C via sh:class, D references B via sh:node *)
+  let c = make_shape "s:C" "c:C" in
+  let b =
+    make_shape
+      ~props:
+        [
+          ( make_prop ~path:"refC" () |> fun p ->
+            { p with class_ = Some (Shacl.Iri "c:C") } );
+        ]
+      "s:B" "c:B"
+  in
+  let a =
+    make_shape
+      ~props:
+        [
+          ( make_prop ~path:"refB" () |> fun p ->
+            { p with class_ = Some (Shacl.Iri "c:B") } );
+        ]
+      "s:A" "c:A"
+  in
+  let d =
+    make_shape
+      ~props:
+        [
+          ( make_prop ~path:"refB" () |> fun p ->
+            { p with node = Some (Shacl.Iri "s:B") } );
+        ]
+      "s:D" "c:D"
+  in
+  let sorted = Proto_emit.sort_shapes [ a; d; b; c ] in
+  let iris =
+    List.map
+      (fun (s : Shacl.node_shape) ->
+        let (Shacl.Iri i) = s.iri in
+        i)
+      sorted
+  in
+  (* C first (leaf), then B (depends on C), then A and D (both depend on B) *)
+  Alcotest.(check (list string))
+    "C before B before A and D"
+    [ "s:C"; "s:B"; "s:A"; "s:D" ]
+    iris
+
 let test_local_name_of_iri () =
   let open Chasity_lib in
   Alcotest.(check string)
@@ -164,7 +212,7 @@ let test_emit_proto () =
       let store = Chasity_lib.Triple_store.of_triples triples in
       let shapes = Chasity_lib.Shacl.extract_node_shapes store in
       let shape = List.hd shapes in
-      match Chasity_lib.Proto_emit.emit_proto ~package:"test.v1" shape with
+      match Chasity_lib.Proto_emit.emit_proto ~package:"test.v1" [ shape ] with
       | Error _ -> Alcotest.fail "emit_proto returned errors"
       | Ok proto ->
           let expected =
@@ -212,7 +260,7 @@ let test_emit_or_shape () =
       let store = Chasity_lib.Triple_store.of_triples triples in
       let shapes = Chasity_lib.Shacl.extract_node_shapes store in
       let shape = List.hd shapes in
-      match Chasity_lib.Proto_emit.emit_proto ~package:"test.v1" shape with
+      match Chasity_lib.Proto_emit.emit_proto ~package:"test.v1" [ shape ] with
       | Error _ -> Alcotest.fail "emit_proto returned errors"
       | Ok proto ->
           let expected =
@@ -246,7 +294,7 @@ let test_emit_bad_datatype () =
       let store = Chasity_lib.Triple_store.of_triples triples in
       let shapes = Chasity_lib.Shacl.extract_node_shapes store in
       let shape = List.hd shapes in
-      match Chasity_lib.Proto_emit.emit_proto ~package:"test.v1" shape with
+      match Chasity_lib.Proto_emit.emit_proto ~package:"test.v1" [ shape ] with
       | Ok _ -> Alcotest.fail "expected error but got Ok"
       | Error errs -> Alcotest.(check int) "error count" 1 (List.length errs))
 
@@ -266,6 +314,7 @@ let suite =
       Alcotest.test_case "unsupported datatype" `Quick test_unsupported_datatype;
       Alcotest.test_case "cardinality" `Quick test_cardinality;
       Alcotest.test_case "sort_by_order" `Quick test_sort_by_order;
+      Alcotest.test_case "sort_shapes topo" `Quick test_sort_shapes;
       Alcotest.test_case "local_name_of_iri" `Quick test_local_name_of_iri;
       Alcotest.test_case "enum mapping" `Quick test_enum_mapping;
       Alcotest.test_case "snake_case" `Quick test_snake_case;

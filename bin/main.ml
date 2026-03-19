@@ -25,7 +25,7 @@ let generate_cmd =
     else Ok [ path ]
   in
   let process_shape ~package out file shape =
-    match Chasity_lib.Proto_emit.emit_proto ~package shape with
+    match Chasity_lib.Proto_emit.emit_proto ~package [ shape ] with
     | Error errs ->
         List.map
           (fun err ->

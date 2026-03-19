@@ -170,67 +170,133 @@ let emit_enum (prop : Shacl.property_shape) =
      ]
     @ values @ [ "}\n" ])
 
-let emit_proto ~package (shape : Shacl.node_shape) =
+let emit_message (shape : Shacl.node_shape) sorted =
+  let message_name = local_name_of_iri shape.target_class in
+  let fields =
+    assign_field_numbers sorted
+    |> List.map (fun (prop, resolved, num) -> emit_field resolved prop num)
+  in
+  String.concat ""
+    ([ Printf.sprintf "message %s {\n" message_name ] @ fields @ [ "}\n" ])
+
+(* Topological sort: dependencies (referenced shapes) come before referencing shapes *)
+let sort_shapes (shapes : Shacl.node_shape list) =
+  let shapes_arr = Array.of_list shapes in
+  let n = Array.length shapes_arr in
+  let iri_to_idx = Hashtbl.create (n * 2) in
+  Array.iteri
+    (fun i (s : Shacl.node_shape) ->
+      let (Shacl.Iri si) = s.iri in
+      let (Shacl.Iri ci) = s.target_class in
+      Hashtbl.replace iri_to_idx si i;
+      Hashtbl.replace iri_to_idx ci i)
+    shapes_arr;
+  let refs_of (s : Shacl.node_shape) =
+    List.concat_map
+      (fun (p : Shacl.property_shape) ->
+        (match p.node with
+        | Some iri -> [ iri ]
+        | None -> ( match p.class_ with Some iri -> [ iri ] | None -> []))
+        @ p.or_)
+      s.properties
+  in
+  let visited = Array.make n false in
+  let result = ref [] in
+  let rec visit i =
+    if not visited.(i) then (
+      visited.(i) <- true;
+      List.iter
+        (fun (Shacl.Iri iri) ->
+          match Hashtbl.find_opt iri_to_idx iri with
+          | Some j when j <> i -> visit j
+          | _ -> ())
+        (refs_of shapes_arr.(i));
+      result := shapes_arr.(i) :: !result)
+  in
+  for i = 0 to n - 1 do
+    visit i
+  done;
+  List.rev !result
+
+let resolve_shape (shape : Shacl.node_shape) =
   match resolve_properties shape.properties with
   | Error errs -> Error errs
   | Ok resolved ->
-      let constraint_errors =
+      let bad =
         List.filter_map
-          (fun ((prop : Shacl.property_shape), resolved) ->
-            match resolved with
-            | Simple type_name
-              when Validate_emit.has_fractional_int_constraints type_name prop
+          (fun ((prop : Shacl.property_shape), r) ->
+            match r with
+            | Simple t when Validate_emit.has_fractional_int_constraints t prop
               ->
                 Some (Fractional_constraint prop.path)
             | _ -> None)
           resolved
       in
-      if constraint_errors <> [] then Error constraint_errors
-      else
-        let sorted = sort_by_order resolved in
-        let message_name = local_name_of_iri shape.target_class in
-        let needs_timestamp =
+      if bad <> [] then Error bad else Ok (shape, sort_by_order resolved)
+
+let emit_proto ~package ?(imports = []) (shapes : Shacl.node_shape list) =
+  let sorted_shapes = sort_shapes shapes in
+  let results = List.map resolve_shape sorted_shapes in
+  let all_errors =
+    List.concat_map (function Error e -> e | Ok _ -> []) results
+  in
+  if all_errors <> [] then Error all_errors
+  else
+    let resolved =
+      List.filter_map (function Ok x -> Some x | Error _ -> None) results
+    in
+    let needs_timestamp =
+      List.exists
+        (fun (_, sorted) ->
           List.exists
-            (fun (_, resolved) -> resolved = Simple "google.protobuf.Timestamp")
-            sorted
-        in
-        let needs_validate =
+            (fun (_, r) -> r = Simple "google.protobuf.Timestamp")
+            sorted)
+        resolved
+    in
+    let needs_validate =
+      List.exists
+        (fun (_, sorted) ->
           List.exists
-            (fun ((prop : Shacl.property_shape), resolved) ->
-              match resolved with
-              | Simple type_name -> Validate_emit.has_constraints type_name prop
+            (fun ((p : Shacl.property_shape), r) ->
+              match r with
+              | Simple t -> Validate_emit.has_constraints t p
               | Oneof _ -> false)
-            sorted
-        in
-        let header =
-          Printf.sprintf "syntax = \"proto3\";\n\npackage %s;\n\n" package
-        in
-        let imports =
-          String.concat ""
-            (List.filter_map Fun.id
-               [
-                 (if needs_validate then
-                    Some "import \"buf/validate/validate.proto\";\n"
-                  else None);
-                 (if needs_timestamp then
-                    Some "import \"google/protobuf/timestamp.proto\";\n"
-                  else None);
-               ])
-          |> fun s -> if s = "" then "" else s ^ "\n"
-        in
-        let enums =
+            sorted)
+        resolved
+    in
+    let header =
+      Printf.sprintf "syntax = \"proto3\";\n\npackage %s;\n\n" package
+    in
+    let well_known =
+      List.filter_map Fun.id
+        [
+          (if needs_validate then
+             Some "import \"buf/validate/validate.proto\";\n"
+           else None);
+          (if needs_timestamp then
+             Some "import \"google/protobuf/timestamp.proto\";\n"
+           else None);
+        ]
+    in
+    let extra =
+      List.map (fun path -> Printf.sprintf "import \"%s\";\n" path) imports
+    in
+    let all_imports = well_known @ extra in
+    let imports_str =
+      match all_imports with [] -> "" | lines -> String.concat "" lines ^ "\n"
+    in
+    let enums =
+      List.concat_map
+        (fun (_, sorted) ->
           List.filter_map
             (fun ((prop : Shacl.property_shape), _) ->
               if prop.in_ <> [] then Some (emit_enum prop ^ "\n") else None)
-            sorted
-        in
-        let fields =
-          assign_field_numbers sorted
-          |> List.map (fun (prop, resolved, num) ->
-                 emit_field resolved prop num)
-        in
-        Ok
-          (String.concat ""
-             ([ header; imports ] @ enums
-             @ [ Printf.sprintf "message %s {\n" message_name ]
-             @ fields @ [ "}\n" ]))
+            sorted)
+        resolved
+    in
+    let messages =
+      List.map (fun (shape, sorted) -> emit_message shape sorted) resolved
+    in
+    Ok
+      (String.concat ""
+         ([ header; imports_str ] @ enums @ [ String.concat "\n" messages ]))

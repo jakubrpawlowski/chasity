@@ -16,7 +16,7 @@ type file_group = {
 module StringMap = Map.Make (String)
 
 let build_registry (file_shapes : (string * Shacl.node_shape list) list) =
-  let register source shape_iri (Shacl.Iri s) reg =
+  let register source shape_iri (Iri.Iri s) reg =
     match StringMap.find_opt s reg with
     | Some (existing_source, existing_shape_iri)
       when existing_shape_iri <> shape_iri ->
@@ -43,7 +43,7 @@ let import_path ~package source =
 
 let resolve_refs ~package ~source registry (shape : Shacl.node_shape) =
   let check_iri iri =
-    let (Shacl.Iri s) = iri in
+    let (Iri.Iri s) = iri in
     match StringMap.find_opt s registry with
     | Some (ref_source, _) when ref_source <> source ->
         ([ import_path ~package ref_source ], [])
@@ -60,8 +60,8 @@ let resolve_refs ~package ~source registry (shape : Shacl.node_shape) =
         | Some node_iri, Some class_iri ->
             let acc = merge acc (check_iri node_iri) in
             let acc = merge acc (check_iri class_iri) in
-            let (Shacl.Iri n) = node_iri in
-            let (Shacl.Iri c) = class_iri in
+            let (Iri.Iri n) = node_iri in
+            let (Iri.Iri c) = class_iri in
             let node_source = StringMap.find_opt n registry in
             let class_source = StringMap.find_opt c registry in
             if node_source <> class_source then

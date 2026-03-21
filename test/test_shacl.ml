@@ -19,7 +19,7 @@ let test_extract_person_shape () =
             s = path_iri)
           shape.properties
       in
-      let iri_str = Option.map (fun (Chasity_lib.Shacl.Iri s) -> s) in
+      let iri_str = Option.map (fun (Chasity_lib.Iri.Iri s) -> s) in
       (* name: datatype, minCount, minLength, maxLength, name, description, order *)
       let name = find "http://schema.org/name" in
       Alcotest.(check (option string))

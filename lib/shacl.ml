@@ -1,17 +1,15 @@
 (* Semantic analysis: extracts typed SHACL shapes (IR) from the triple store (AST) *)
 
-type iri = Iri of string
-
 type property_shape = {
-  path : iri;
-  datatype : iri option;
+  path : Iri.t;
+  datatype : Iri.t option;
   min_count : int option;
   max_count : int option;
   pattern : string option;
-  class_ : iri option;
-  node : iri option;
+  class_ : Iri.t option;
+  node : Iri.t option;
   in_ : string list;
-  or_ : iri list;
+  or_ : Iri.t list;
   min_length : int option;
   max_length : int option;
   min_inclusive : float option;
@@ -24,8 +22,8 @@ type property_shape = {
 }
 
 type node_shape = {
-  iri : iri;
-  target_class : iri;
+  iri : Iri.t;
+  target_class : Iri.t;
   properties : property_shape list;
 }
 
@@ -44,7 +42,7 @@ let find_all_objects predicate pairs =
       if Ntriples.Term.compare pred predicate = 0 then Some obj else None)
     pairs
 
-let iri_of_term = function Ntriples.Term.Iri s -> Some (Iri s) | _ -> None
+let iri_of_term = function Ntriples.Term.Iri s -> Some (Iri.Iri s) | _ -> None
 
 let int_of_term = function
   | Ntriples.Term.Literal { value; _ } -> int_of_string_opt value

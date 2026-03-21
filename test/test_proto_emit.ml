@@ -45,7 +45,7 @@ let test_datatype_mappings () =
         expected
 
 let test_unsupported_datatype () =
-  let iri = Chasity_lib.Shacl.Iri "http://example.org/madeUpType" in
+  let iri = Chasity_lib.Iri.Iri "http://example.org/madeUpType" in
   match Chasity_lib.Proto_emit.proto_type_of_datatype iri with
   | Error (Unsupported_datatype _) -> ()
   | Error (Fractional_constraint _) ->
@@ -138,7 +138,7 @@ let test_sort_shapes () =
       ~props:
         [
           ( make_prop ~path:"refC" () |> fun p ->
-            { p with class_ = Some (Shacl.Iri "c:C") } );
+            { p with class_ = Some (Iri.Iri "c:C") } );
         ]
       "s:B" "c:B"
   in
@@ -147,7 +147,7 @@ let test_sort_shapes () =
       ~props:
         [
           ( make_prop ~path:"refB" () |> fun p ->
-            { p with class_ = Some (Shacl.Iri "c:B") } );
+            { p with class_ = Some (Iri.Iri "c:B") } );
         ]
       "s:A" "c:A"
   in
@@ -156,7 +156,7 @@ let test_sort_shapes () =
       ~props:
         [
           ( make_prop ~path:"refB" () |> fun p ->
-            { p with node = Some (Shacl.Iri "s:B") } );
+            { p with node = Some (Iri.Iri "s:B") } );
         ]
       "s:D" "c:D"
   in
@@ -164,7 +164,7 @@ let test_sort_shapes () =
   let iris =
     List.map
       (fun (s : Shacl.node_shape) ->
-        let (Shacl.Iri i) = s.iri in
+        let (Iri.Iri i) = s.iri in
         i)
       sorted
   in
@@ -178,17 +178,17 @@ let test_local_name_of_iri () =
   let open Chasity_lib in
   Alcotest.(check string)
     "slash IRI" "Organization"
-    (Proto_emit.local_name_of_iri (Shacl.Iri "http://schema.org/Organization"));
+    (Proto_emit.local_name_of_iri (Iri.Iri "http://schema.org/Organization"));
   Alcotest.(check string)
     "hash IRI" "string"
     (Proto_emit.local_name_of_iri
-       (Shacl.Iri "http://www.w3.org/2001/XMLSchema#string"))
+       (Iri.Iri "http://www.w3.org/2001/XMLSchema#string"))
 
 let test_enum_mapping () =
   let open Chasity_lib in
   Alcotest.(check string)
     "enum type name" "Gender"
-    (Proto_emit.enum_type_name (Shacl.Iri "http://schema.org/gender"));
+    (Proto_emit.enum_type_name (Iri.Iri "http://schema.org/gender"));
   Alcotest.(check string)
     "enum value" "GENDER_MALE"
     (Proto_emit.enum_value_name ~prefix:"gender" "male");

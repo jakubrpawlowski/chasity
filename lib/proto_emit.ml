@@ -1,10 +1,8 @@
 (* Code generation: emits .proto files from SHACL shapes (IR) *)
 
-type error =
-  | Unsupported_datatype of Shacl.iri
-  | Fractional_constraint of Shacl.iri
+type error = Unsupported_datatype of Iri.t | Fractional_constraint of Iri.t
 
-let proto_type_of_datatype (Shacl.Iri iri) =
+let proto_type_of_datatype (Iri.Iri iri) =
   match iri with
   | "http://www.w3.org/2001/XMLSchema#anyURI"
   | "http://www.w3.org/2001/XMLSchema#date"
@@ -27,7 +25,7 @@ let proto_type_of_datatype (Shacl.Iri iri) =
   | "http://www.w3.org/2001/XMLSchema#long" ->
       Ok "int64"
   | "http://www.w3.org/2001/XMLSchema#nonNegativeInteger" -> Ok "uint64"
-  | _ -> Error (Unsupported_datatype (Shacl.Iri iri))
+  | _ -> Error (Unsupported_datatype (Iri.Iri iri))
 
 type cardinality = Required | Optional | Repeated
 
@@ -37,7 +35,7 @@ let cardinality_of_property (prop : Shacl.property_shape) =
       match prop.min_count with Some n when n >= 1 -> Required | _ -> Optional)
   | _ -> Repeated
 
-let local_name_of_iri (Shacl.Iri iri) =
+let local_name_of_iri (Iri.Iri iri) =
   let after_hash =
     match String.rindex_opt iri '#' with Some i -> i + 1 | None -> 0
   in
@@ -186,8 +184,8 @@ let sort_shapes (shapes : Shacl.node_shape list) =
   let iri_to_idx = Hashtbl.create (n * 2) in
   Array.iteri
     (fun i (s : Shacl.node_shape) ->
-      let (Shacl.Iri si) = s.iri in
-      let (Shacl.Iri ci) = s.target_class in
+      let (Iri.Iri si) = s.iri in
+      let (Iri.Iri ci) = s.target_class in
       Hashtbl.replace iri_to_idx si i;
       Hashtbl.replace iri_to_idx ci i)
     shapes_arr;
@@ -206,7 +204,7 @@ let sort_shapes (shapes : Shacl.node_shape list) =
     if not visited.(i) then (
       visited.(i) <- true;
       List.iter
-        (fun (Shacl.Iri iri) ->
+        (fun (Iri.Iri iri) ->
           match Hashtbl.find_opt iri_to_idx iri with
           | Some j when j <> i -> visit j
           | _ -> ())

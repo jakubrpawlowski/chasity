@@ -75,7 +75,8 @@ let generate_cmd =
         in
         mkdir_p dir;
         let out_path =
-          Filename.concat dir (Chasity_lib.Proto_emit.snake_case base ^ ".proto")
+          Filename.concat dir
+            (Chasity_lib.String_ext.to_snake_case base ^ ".proto")
         in
         let oc = open_out out_path in
         output_string oc proto;

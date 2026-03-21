@@ -197,12 +197,12 @@ let test_enum_mapping () =
     (Proto_emit.enum_value_name ~prefix:"gender" "female")
 
 let test_snake_case () =
-  let open Chasity_lib.Proto_emit in
+  let open Chasity_lib.String_ext in
   Alcotest.(check string)
     "camelCase" "birth_date_time"
-    (snake_case "birthDateTime");
-  Alcotest.(check string) "already snake" "name" (snake_case "name");
-  Alcotest.(check string) "leading upper" "person" (snake_case "Person")
+    (to_snake_case "birthDateTime");
+  Alcotest.(check string) "already snake" "name" (to_snake_case "name");
+  Alcotest.(check string) "leading upper" "person" (to_snake_case "Person")
 
 let test_emit_proto () =
   match Chasity_lib.Ntriples.from_file (Path "fixtures/person.ttl") with

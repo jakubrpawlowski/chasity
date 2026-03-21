@@ -50,16 +50,7 @@ let enum_type_name path = String.capitalize_ascii (local_name_of_iri path)
 let enum_value_name ~prefix value =
   String.uppercase_ascii prefix ^ "_" ^ String.uppercase_ascii value
 
-let snake_case s =
-  let buf = Buffer.create (String.length s + 4) in
-  String.iteri
-    (fun i c ->
-      if i > 0 && c >= 'A' && c <= 'Z' then Buffer.add_char buf '_';
-      Buffer.add_char buf (Char.lowercase_ascii c))
-    s;
-  Buffer.contents buf
-
-let field_name path = snake_case (local_name_of_iri path)
+let field_name path = String_ext.to_snake_case (local_name_of_iri path)
 
 type resolved_type =
   | Simple of string
@@ -72,7 +63,7 @@ let proto_type_of_property (prop : Shacl.property_shape) =
       List.map
         (fun iri ->
           let name = local_name_of_iri iri in
-          (name, snake_case name))
+          (name, String_ext.to_snake_case name))
         prop.or_
     in
     Ok (Oneof variants)

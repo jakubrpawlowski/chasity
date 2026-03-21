@@ -39,7 +39,7 @@ let build_registry (file_shapes : (string * Shacl.node_shape list) list) =
 let import_path ~package source =
   let base = Filename.chop_extension (Filename.basename source) in
   let package_dir = String.split_on_char '.' package |> String.concat "/" in
-  Printf.sprintf "%s/%s.proto" package_dir (Proto_emit.snake_case base)
+  Printf.sprintf "%s/%s.proto" package_dir (String_ext.to_snake_case base)
 
 let resolve_refs ~package ~source registry (shape : Shacl.node_shape) =
   let check_iri iri =

@@ -63,7 +63,9 @@ let generate_cmd =
                   group.source iri)
           errs
     | Ok proto -> (
-        let base = Filename.chop_extension (Filename.basename group.source) in
+        let base =
+          group.source |> Filename.basename |> Filename.chop_extension
+        in
         let package_dir =
           String.split_on_char '.' package |> String.concat Filename.dir_sep
         in

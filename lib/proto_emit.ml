@@ -1,5 +1,7 @@
 (* Code generation: emits .proto files from SHACL shapes (IR) *)
 
+open Fun_ext
+
 type error = Unsupported_datatype of Iri.t | Fractional_constraint of Iri.t
 
 let proto_type_of_datatype (Iri.Iri iri) =
@@ -35,12 +37,12 @@ let cardinality_of_property (prop : Shacl.property_shape) =
       match prop.min_count with Some n when n >= 1 -> Required | _ -> Optional)
   | _ -> Repeated
 
-let enum_type_name path = String.capitalize_ascii (Iri.to_local_name path)
+let enum_type_name = Iri.to_local_name >> String.capitalize_ascii
 
 let enum_value_name ~prefix value =
   String.uppercase_ascii prefix ^ "_" ^ String.uppercase_ascii value
 
-let field_name path = String_ext.to_snake_case (Iri.to_local_name path)
+let field_name = Iri.to_local_name >> String_ext.to_snake_case
 
 type resolved_type =
   | Simple of string

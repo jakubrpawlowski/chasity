@@ -48,7 +48,7 @@ let parse_line (Line line) =
     match String.rindex_opt line '.' with
     | None -> None
     | Some dot_pos -> (
-        let content = String.trim (String.sub line 0 dot_pos) in
+        let content = String.sub line 0 dot_pos |> String.trim in
         match split_at_space content with
         | None -> None
         | Some (subject_str, rest) -> (
@@ -74,7 +74,8 @@ let from_file (Path raw as path) =
      done
    with End_of_file -> ());
   match Unix.close_process_in ic with
-  | Unix.WEXITED 0 -> Ok (List.filter_map parse_line (List.rev !lines))
+  | Unix.WEXITED 0 ->
+      !lines |> List.rev |> List.filter_map parse_line |> Result.ok
   | Unix.WEXITED code -> Error (Riot_failed { path; exit_code = code })
   | Unix.WSIGNALED _ | Unix.WSTOPPED _ ->
       Error (Riot_failed { path; exit_code = -1 })

@@ -37,7 +37,7 @@ let build_registry (file_shapes : (string * Shacl.node_shape list) list) =
     (Ok StringMap.empty) file_shapes
 
 let import_path ~package source =
-  let base = Filename.chop_extension (Filename.basename source) in
+  let base = source |> Filename.basename |> Filename.chop_extension in
   let package_dir = String.split_on_char '.' package |> String.concat "/" in
   Printf.sprintf "%s/%s.proto" package_dir (String_ext.to_snake_case base)
 

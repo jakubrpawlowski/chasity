@@ -160,7 +160,7 @@ let test_sort_shapes () =
         ]
       "s:D" "c:D"
   in
-  let sorted = Proto_emit.sort_shapes [ a; d; b; c ] in
+  let sorted = Shacl.sort_shapes [ a; d; b; c ] in
   let iris =
     List.map
       (fun (s : Shacl.node_shape) ->

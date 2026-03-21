@@ -158,45 +158,6 @@ let emit_message (shape : Shacl.node_shape) sorted =
   String.concat ""
     ([ Printf.sprintf "message %s {\n" message_name ] @ fields @ [ "}\n" ])
 
-(* Topological sort: dependencies (referenced shapes) come before referencing shapes *)
-let sort_shapes (shapes : Shacl.node_shape list) =
-  let shapes_arr = Array.of_list shapes in
-  let n = Array.length shapes_arr in
-  let iri_to_idx = Hashtbl.create (n * 2) in
-  Array.iteri
-    (fun i (s : Shacl.node_shape) ->
-      let (Iri.Iri si) = s.iri in
-      let (Iri.Iri ci) = s.target_class in
-      Hashtbl.replace iri_to_idx si i;
-      Hashtbl.replace iri_to_idx ci i)
-    shapes_arr;
-  let refs_of (s : Shacl.node_shape) =
-    List.concat_map
-      (fun (p : Shacl.property_shape) ->
-        (match p.node with
-        | Some iri -> [ iri ]
-        | None -> ( match p.class_ with Some iri -> [ iri ] | None -> []))
-        @ p.or_)
-      s.properties
-  in
-  let visited = Array.make n false in
-  let result = ref [] in
-  let rec visit i =
-    if not visited.(i) then (
-      visited.(i) <- true;
-      List.iter
-        (fun (Iri.Iri iri) ->
-          match Hashtbl.find_opt iri_to_idx iri with
-          | Some j when j <> i -> visit j
-          | _ -> ())
-        (refs_of shapes_arr.(i));
-      result := shapes_arr.(i) :: !result)
-  in
-  for i = 0 to n - 1 do
-    visit i
-  done;
-  List.rev !result
-
 let resolve_shape (shape : Shacl.node_shape) =
   match resolve_properties shape.properties with
   | Error errs -> Error errs
@@ -214,8 +175,7 @@ let resolve_shape (shape : Shacl.node_shape) =
       if bad <> [] then Error bad else Ok (shape, sort_by_order resolved)
 
 let emit_proto ~package ?(imports = []) (shapes : Shacl.node_shape list) =
-  let sorted_shapes = sort_shapes shapes in
-  let results = List.map resolve_shape sorted_shapes in
+  let results = shapes |> Shacl.sort_shapes |> List.map resolve_shape in
   let all_errors =
     List.concat_map (function Error e -> e | Ok _ -> []) results
   in

@@ -27,131 +27,136 @@ type node_shape = {
   properties : property_shape list;
 }
 
-let sh s = Ntriples.Term.Iri ("http://www.w3.org/ns/shacl#" ^ s)
-let rdf s = Ntriples.Term.Iri ("http://www.w3.org/1999/02/22-rdf-syntax-ns#" ^ s)
-
-let find_object predicate pairs =
-  List.find_map
-    (fun (pred, obj) ->
-      if Ntriples.Term.compare pred predicate = 0 then Some obj else None)
-    pairs
-
-let find_all_objects predicate pairs =
-  List.filter_map
-    (fun (pred, obj) ->
-      if Ntriples.Term.compare pred predicate = 0 then Some obj else None)
-    pairs
-
-let iri_of_term = function Ntriples.Term.Iri s -> Some (Iri.Iri s) | _ -> None
-
-let int_of_term = function
-  | Ntriples.Term.Literal { value; _ } -> int_of_string_opt value
-  | _ -> None
-
-let float_of_term = function
-  | Ntriples.Term.Literal { value; _ } -> float_of_string_opt value
-  | _ -> None
-
-let string_of_term = function
-  | Ntriples.Term.Literal { value; _ } -> Some value
-  | _ -> None
-
-let rec collect_rdf_list store term =
-  let nil = rdf "nil" in
-  if Ntriples.Term.compare term nil = 0 then []
-  else
-    let pairs = Triple_store.find_subject term store in
-    match find_object (rdf "first") pairs with
-    | None -> []
-    | Some first ->
-        let rest =
-          match find_object (rdf "rest") pairs with
-          | Some next -> collect_rdf_list store next
-          | None -> []
-        in
-        first :: rest
+(* Topological sort: dependencies (referenced shapes) come before referencing shapes *)
+let sort_shapes (shapes : node_shape list) =
+  let shapes_arr = Array.of_list shapes in
+  let n = Array.length shapes_arr in
+  let iri_to_idx = Hashtbl.create (n * 2) in
+  Array.iteri
+    (fun i (s : node_shape) ->
+      let (Iri.Iri si) = s.iri in
+      let (Iri.Iri ci) = s.target_class in
+      Hashtbl.replace iri_to_idx si i;
+      Hashtbl.replace iri_to_idx ci i)
+    shapes_arr;
+  let refs_of (s : node_shape) =
+    List.concat_map
+      (fun (p : property_shape) ->
+        (match p.node with
+        | Some iri -> [ iri ]
+        | None -> ( match p.class_ with Some iri -> [ iri ] | None -> []))
+        @ p.or_)
+      s.properties
+  in
+  let visited = Array.make n false in
+  let result = ref [] in
+  let rec visit i =
+    if not visited.(i) then (
+      visited.(i) <- true;
+      List.iter
+        (fun (Iri.Iri iri) ->
+          match Hashtbl.find_opt iri_to_idx iri with
+          | Some j when j <> i -> visit j
+          | _ -> ())
+        (refs_of shapes_arr.(i));
+      result := shapes_arr.(i) :: !result)
+  in
+  for i = 0 to n - 1 do
+    visit i
+  done;
+  List.rev !result
 
 let extract_property_shape store prop_term =
   let pairs = Triple_store.find_subject prop_term store in
-  match find_object (sh "path") pairs |> Option_ext.flat_map iri_of_term with
+  match
+    Rdf.find_object (Rdf.sh "path") pairs |> Option_ext.flat_map Rdf.iri_of_term
+  with
   | None -> None
   | Some path ->
       Some
         {
           path;
           datatype =
-            find_object (sh "datatype") pairs |> Option_ext.flat_map iri_of_term;
+            Rdf.find_object (Rdf.sh "datatype") pairs
+            |> Option_ext.flat_map Rdf.iri_of_term;
           min_count =
-            find_object (sh "minCount") pairs |> Option_ext.flat_map int_of_term;
+            Rdf.find_object (Rdf.sh "minCount") pairs
+            |> Option_ext.flat_map Rdf.int_of_term;
           max_count =
-            find_object (sh "maxCount") pairs |> Option_ext.flat_map int_of_term;
+            Rdf.find_object (Rdf.sh "maxCount") pairs
+            |> Option_ext.flat_map Rdf.int_of_term;
           pattern =
-            find_object (sh "pattern") pairs
-            |> Option_ext.flat_map string_of_term;
+            Rdf.find_object (Rdf.sh "pattern") pairs
+            |> Option_ext.flat_map Rdf.string_of_term;
           class_ =
-            find_object (sh "class") pairs |> Option_ext.flat_map iri_of_term;
+            Rdf.find_object (Rdf.sh "class") pairs
+            |> Option_ext.flat_map Rdf.iri_of_term;
           node =
-            find_object (sh "node") pairs |> Option_ext.flat_map iri_of_term;
+            Rdf.find_object (Rdf.sh "node") pairs
+            |> Option_ext.flat_map Rdf.iri_of_term;
           in_ =
-            (match find_object (sh "in") pairs with
+            (match Rdf.find_object (Rdf.sh "in") pairs with
             | Some list_head ->
-                List.filter_map string_of_term
-                  (collect_rdf_list store list_head)
+                List.filter_map Rdf.string_of_term
+                  (Rdf.collect_rdf_list store list_head)
             | None -> []);
           or_ =
-            (match find_object (sh "or") pairs with
+            (match Rdf.find_object (Rdf.sh "or") pairs with
             | Some list_head ->
                 List.filter_map
                   (fun term ->
                     let shape_pairs = Triple_store.find_subject term store in
-                    find_object (sh "class") shape_pairs
-                    |> Option_ext.flat_map iri_of_term)
-                  (collect_rdf_list store list_head)
+                    Rdf.find_object (Rdf.sh "class") shape_pairs
+                    |> Option_ext.flat_map Rdf.iri_of_term)
+                  (Rdf.collect_rdf_list store list_head)
             | None -> []);
           min_length =
-            find_object (sh "minLength") pairs
-            |> Option_ext.flat_map int_of_term;
+            Rdf.find_object (Rdf.sh "minLength") pairs
+            |> Option_ext.flat_map Rdf.int_of_term;
           max_length =
-            find_object (sh "maxLength") pairs
-            |> Option_ext.flat_map int_of_term;
+            Rdf.find_object (Rdf.sh "maxLength") pairs
+            |> Option_ext.flat_map Rdf.int_of_term;
           min_inclusive =
-            find_object (sh "minInclusive") pairs
-            |> Option_ext.flat_map float_of_term;
+            Rdf.find_object (Rdf.sh "minInclusive") pairs
+            |> Option_ext.flat_map Rdf.float_of_term;
           max_inclusive =
-            find_object (sh "maxInclusive") pairs
-            |> Option_ext.flat_map float_of_term;
+            Rdf.find_object (Rdf.sh "maxInclusive") pairs
+            |> Option_ext.flat_map Rdf.float_of_term;
           min_exclusive =
-            find_object (sh "minExclusive") pairs
-            |> Option_ext.flat_map float_of_term;
+            Rdf.find_object (Rdf.sh "minExclusive") pairs
+            |> Option_ext.flat_map Rdf.float_of_term;
           max_exclusive =
-            find_object (sh "maxExclusive") pairs
-            |> Option_ext.flat_map float_of_term;
+            Rdf.find_object (Rdf.sh "maxExclusive") pairs
+            |> Option_ext.flat_map Rdf.float_of_term;
           name =
-            find_object (sh "name") pairs |> Option_ext.flat_map string_of_term;
+            Rdf.find_object (Rdf.sh "name") pairs
+            |> Option_ext.flat_map Rdf.string_of_term;
           description =
-            find_object (sh "description") pairs
-            |> Option_ext.flat_map string_of_term;
+            Rdf.find_object (Rdf.sh "description") pairs
+            |> Option_ext.flat_map Rdf.string_of_term;
           order =
-            find_object (sh "order") pairs |> Option_ext.flat_map int_of_term;
+            Rdf.find_object (Rdf.sh "order") pairs
+            |> Option_ext.flat_map Rdf.int_of_term;
         }
 
 let extract_node_shapes store =
   let node_shape_subjects =
-    Triple_store.find_by_predicate (rdf "type") store
+    Triple_store.find_by_predicate (Rdf.rdf "type") store
     |> List.filter_map (fun (subject, obj) ->
-           if Ntriples.Term.compare obj (sh "NodeShape") = 0 then Some subject
+           if Ntriples.Term.compare obj (Rdf.sh "NodeShape") = 0 then
+             Some subject
            else None)
   in
   List.filter_map
     (fun subject ->
       let pairs = Triple_store.find_subject subject store in
       match
-        ( iri_of_term subject,
-          find_object (sh "targetClass") pairs
-          |> Option_ext.flat_map iri_of_term )
+        ( Rdf.iri_of_term subject,
+          Rdf.find_object (Rdf.sh "targetClass") pairs
+          |> Option_ext.flat_map Rdf.iri_of_term )
       with
       | Some iri, Some target_class ->
-          let prop_terms = find_all_objects (sh "property") pairs in
+          let prop_terms = Rdf.find_all_objects (Rdf.sh "property") pairs in
           let properties =
             List.filter_map (extract_property_shape store) prop_terms
           in

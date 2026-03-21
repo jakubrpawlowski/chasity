@@ -174,15 +174,14 @@ let test_sort_shapes () =
     [ "s:C"; "s:B"; "s:A"; "s:D" ]
     iris
 
-let test_local_name_of_iri () =
+let test_to_local_name () =
   let open Chasity_lib in
   Alcotest.(check string)
     "slash IRI" "Organization"
-    (Proto_emit.local_name_of_iri (Iri.Iri "http://schema.org/Organization"));
+    (Iri.to_local_name (Iri.Iri "http://schema.org/Organization"));
   Alcotest.(check string)
     "hash IRI" "string"
-    (Proto_emit.local_name_of_iri
-       (Iri.Iri "http://www.w3.org/2001/XMLSchema#string"))
+    (Iri.to_local_name (Iri.Iri "http://www.w3.org/2001/XMLSchema#string"))
 
 let test_enum_mapping () =
   let open Chasity_lib in
@@ -315,7 +314,7 @@ let suite =
       Alcotest.test_case "cardinality" `Quick test_cardinality;
       Alcotest.test_case "sort_by_order" `Quick test_sort_by_order;
       Alcotest.test_case "sort_shapes topo" `Quick test_sort_shapes;
-      Alcotest.test_case "local_name_of_iri" `Quick test_local_name_of_iri;
+      Alcotest.test_case "to_local_name" `Quick test_to_local_name;
       Alcotest.test_case "enum mapping" `Quick test_enum_mapping;
       Alcotest.test_case "snake_case" `Quick test_snake_case;
       Alcotest.test_case "emit PersonShape" `Quick test_emit_proto;

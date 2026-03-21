@@ -35,22 +35,12 @@ let cardinality_of_property (prop : Shacl.property_shape) =
       match prop.min_count with Some n when n >= 1 -> Required | _ -> Optional)
   | _ -> Repeated
 
-let local_name_of_iri (Iri.Iri iri) =
-  let after_hash =
-    match String.rindex_opt iri '#' with Some i -> i + 1 | None -> 0
-  in
-  let after_slash =
-    match String.rindex_opt iri '/' with Some i -> i + 1 | None -> 0
-  in
-  let start = max after_hash after_slash in
-  String.sub iri start (String.length iri - start)
-
-let enum_type_name path = String.capitalize_ascii (local_name_of_iri path)
+let enum_type_name path = String.capitalize_ascii (Iri.to_local_name path)
 
 let enum_value_name ~prefix value =
   String.uppercase_ascii prefix ^ "_" ^ String.uppercase_ascii value
 
-let field_name path = String_ext.to_snake_case (local_name_of_iri path)
+let field_name path = String_ext.to_snake_case (Iri.to_local_name path)
 
 type resolved_type =
   | Simple of string
@@ -62,14 +52,14 @@ let proto_type_of_property (prop : Shacl.property_shape) =
     let variants =
       List.map
         (fun iri ->
-          let name = local_name_of_iri iri in
+          let name = Iri.to_local_name iri in
           (name, String_ext.to_snake_case name))
         prop.or_
     in
     Ok (Oneof variants)
   else
     match prop.class_ with
-    | Some class_iri -> Ok (Simple (local_name_of_iri class_iri))
+    | Some class_iri -> Ok (Simple (Iri.to_local_name class_iri))
     | None -> (
         match prop.datatype with
         | Some dt -> proto_type_of_datatype dt |> Result.map (fun s -> Simple s)
@@ -145,7 +135,7 @@ let emit_field resolved_type (prop : Shacl.property_shape) field_num =
 
 let emit_enum (prop : Shacl.property_shape) =
   let type_name = enum_type_name prop.path in
-  let prefix = local_name_of_iri prop.path in
+  let prefix = Iri.to_local_name prop.path in
   let values =
     List.mapi
       (fun i v ->
@@ -160,7 +150,7 @@ let emit_enum (prop : Shacl.property_shape) =
     @ values @ [ "}\n" ])
 
 let emit_message (shape : Shacl.node_shape) sorted =
-  let message_name = local_name_of_iri shape.target_class in
+  let message_name = Iri.to_local_name shape.target_class in
   let fields =
     assign_field_numbers sorted
     |> List.map (fun (prop, resolved, num) -> emit_field resolved prop num)

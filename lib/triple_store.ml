@@ -20,6 +20,18 @@ let of_triples triples =
 let find_subject (subject : Ntriples.Term.t) (store : t) =
   match TermMap.find_opt subject store with Some pairs -> pairs | None -> []
 
+let find_object predicate pairs =
+  List.find_map
+    (fun (pred, obj) ->
+      if Ntriples.Term.compare pred predicate = 0 then Some obj else None)
+    pairs
+
+let find_all_objects predicate pairs =
+  List.filter_map
+    (fun (pred, obj) ->
+      if Ntriples.Term.compare pred predicate = 0 then Some obj else None)
+    pairs
+
 let find_by_predicate (predicate : Ntriples.Term.t) (store : t) =
   TermMap.fold
     (fun subject pairs acc ->

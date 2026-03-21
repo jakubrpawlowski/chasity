@@ -2,19 +2,6 @@
 
 let sh s = Ntriples.Term.Iri ("http://www.w3.org/ns/shacl#" ^ s)
 let rdf s = Ntriples.Term.Iri ("http://www.w3.org/1999/02/22-rdf-syntax-ns#" ^ s)
-
-let find_object predicate pairs =
-  List.find_map
-    (fun (pred, obj) ->
-      if Ntriples.Term.compare pred predicate = 0 then Some obj else None)
-    pairs
-
-let find_all_objects predicate pairs =
-  List.filter_map
-    (fun (pred, obj) ->
-      if Ntriples.Term.compare pred predicate = 0 then Some obj else None)
-    pairs
-
 let iri_of_term = function Ntriples.Term.Iri s -> Some (Iri.Iri s) | _ -> None
 
 let int_of_term = function
@@ -34,11 +21,11 @@ let rec collect_rdf_list store term =
   if Ntriples.Term.compare term nil = 0 then []
   else
     let pairs = Triple_store.find_subject term store in
-    match find_object (rdf "first") pairs with
+    match Triple_store.find_object (rdf "first") pairs with
     | None -> []
     | Some first ->
         let rest =
-          match find_object (rdf "rest") pairs with
+          match Triple_store.find_object (rdf "rest") pairs with
           | Some next -> collect_rdf_list store next
           | None -> []
         in

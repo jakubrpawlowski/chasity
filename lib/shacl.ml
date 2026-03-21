@@ -69,7 +69,8 @@ let sort_shapes (shapes : node_shape list) =
 let extract_property_shape store prop_term =
   let pairs = Triple_store.find_subject prop_term store in
   match
-    Rdf.find_object (Rdf.sh "path") pairs |> Option_ext.flat_map Rdf.iri_of_term
+    Triple_store.find_object (Rdf.sh "path") pairs
+    |> Option_ext.flat_map Rdf.iri_of_term
   with
   | None -> None
   | Some path ->
@@ -77,65 +78,65 @@ let extract_property_shape store prop_term =
         {
           path;
           datatype =
-            Rdf.find_object (Rdf.sh "datatype") pairs
+            Triple_store.find_object (Rdf.sh "datatype") pairs
             |> Option_ext.flat_map Rdf.iri_of_term;
           min_count =
-            Rdf.find_object (Rdf.sh "minCount") pairs
+            Triple_store.find_object (Rdf.sh "minCount") pairs
             |> Option_ext.flat_map Rdf.int_of_term;
           max_count =
-            Rdf.find_object (Rdf.sh "maxCount") pairs
+            Triple_store.find_object (Rdf.sh "maxCount") pairs
             |> Option_ext.flat_map Rdf.int_of_term;
           pattern =
-            Rdf.find_object (Rdf.sh "pattern") pairs
+            Triple_store.find_object (Rdf.sh "pattern") pairs
             |> Option_ext.flat_map Rdf.string_of_term;
           class_ =
-            Rdf.find_object (Rdf.sh "class") pairs
+            Triple_store.find_object (Rdf.sh "class") pairs
             |> Option_ext.flat_map Rdf.iri_of_term;
           node =
-            Rdf.find_object (Rdf.sh "node") pairs
+            Triple_store.find_object (Rdf.sh "node") pairs
             |> Option_ext.flat_map Rdf.iri_of_term;
           in_ =
-            (match Rdf.find_object (Rdf.sh "in") pairs with
+            (match Triple_store.find_object (Rdf.sh "in") pairs with
             | Some list_head ->
                 List.filter_map Rdf.string_of_term
                   (Rdf.collect_rdf_list store list_head)
             | None -> []);
           or_ =
-            (match Rdf.find_object (Rdf.sh "or") pairs with
+            (match Triple_store.find_object (Rdf.sh "or") pairs with
             | Some list_head ->
                 List.filter_map
                   (fun term ->
                     let shape_pairs = Triple_store.find_subject term store in
-                    Rdf.find_object (Rdf.sh "class") shape_pairs
+                    Triple_store.find_object (Rdf.sh "class") shape_pairs
                     |> Option_ext.flat_map Rdf.iri_of_term)
                   (Rdf.collect_rdf_list store list_head)
             | None -> []);
           min_length =
-            Rdf.find_object (Rdf.sh "minLength") pairs
+            Triple_store.find_object (Rdf.sh "minLength") pairs
             |> Option_ext.flat_map Rdf.int_of_term;
           max_length =
-            Rdf.find_object (Rdf.sh "maxLength") pairs
+            Triple_store.find_object (Rdf.sh "maxLength") pairs
             |> Option_ext.flat_map Rdf.int_of_term;
           min_inclusive =
-            Rdf.find_object (Rdf.sh "minInclusive") pairs
+            Triple_store.find_object (Rdf.sh "minInclusive") pairs
             |> Option_ext.flat_map Rdf.float_of_term;
           max_inclusive =
-            Rdf.find_object (Rdf.sh "maxInclusive") pairs
+            Triple_store.find_object (Rdf.sh "maxInclusive") pairs
             |> Option_ext.flat_map Rdf.float_of_term;
           min_exclusive =
-            Rdf.find_object (Rdf.sh "minExclusive") pairs
+            Triple_store.find_object (Rdf.sh "minExclusive") pairs
             |> Option_ext.flat_map Rdf.float_of_term;
           max_exclusive =
-            Rdf.find_object (Rdf.sh "maxExclusive") pairs
+            Triple_store.find_object (Rdf.sh "maxExclusive") pairs
             |> Option_ext.flat_map Rdf.float_of_term;
           name =
-            Rdf.find_object (Rdf.sh "name") pairs
+            Triple_store.find_object (Rdf.sh "name") pairs
             |> Option_ext.flat_map Rdf.string_of_term;
           description =
-            Rdf.find_object (Rdf.sh "description") pairs
+            Triple_store.find_object (Rdf.sh "description") pairs
             |> Option_ext.flat_map Rdf.string_of_term;
           order =
-            Rdf.find_object (Rdf.sh "order") pairs
+            Triple_store.find_object (Rdf.sh "order") pairs
             |> Option_ext.flat_map Rdf.int_of_term;
         }
 
@@ -152,11 +153,13 @@ let extract_node_shapes store =
       let pairs = Triple_store.find_subject subject store in
       match
         ( Rdf.iri_of_term subject,
-          Rdf.find_object (Rdf.sh "targetClass") pairs
+          Triple_store.find_object (Rdf.sh "targetClass") pairs
           |> Option_ext.flat_map Rdf.iri_of_term )
       with
       | Some iri, Some target_class ->
-          let prop_terms = Rdf.find_all_objects (Rdf.sh "property") pairs in
+          let prop_terms =
+            Triple_store.find_all_objects (Rdf.sh "property") pairs
+          in
           let properties =
             List.filter_map (extract_property_shape store) prop_terms
           in

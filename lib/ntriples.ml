@@ -1,32 +1,5 @@
 (* Lexer/Parser: shells out to riot, parses N-Triples into typed triples *)
 
-module Datatype = struct
-  type t = T of string
-
-  let compare (T a) (T b) = String.compare a b
-end
-
-module Term = struct
-  type t =
-    | Iri of string
-    | Blank of string
-    | Literal of { value : string; datatype : Datatype.t option }
-
-  let compare a b =
-    match (a, b) with
-    | Iri a, Iri b -> String.compare a b
-    | Blank a, Blank b -> String.compare a b
-    | Literal a, Literal b ->
-        let c = String.compare a.value b.value in
-        if c <> 0 then c
-        else Option.compare Datatype.compare a.datatype b.datatype
-    | Iri _, _ -> -1
-    | _, Iri _ -> 1
-    | Blank _, _ -> -1
-    | _, Blank _ -> 1
-end
-
-type triple = { subject : Term.t; predicate : Term.t; object_ : Term.t }
 type line = Line of string
 type path = Path of string
 type error = Riot_failed of { path : path; exit_code : int }
@@ -38,7 +11,7 @@ let parse_datatype rest =
   | true -> (
       let dt = String.trim (String.sub rest 2 (String.length rest - 2)) in
       match dt.[0] with
-      | '<' -> Some (Datatype.T (String.sub dt 1 (String.length dt - 2)))
+      | '<' -> Some (Term.Datatype.T (String.sub dt 1 (String.length dt - 2)))
       | _ -> None)
 
 let parse_term s =
@@ -88,7 +61,7 @@ let parse_line (Line line) =
                     parse_term object_str )
                 with
                 | Some subject, Some predicate, Some object_ ->
-                    Some { subject; predicate; object_ }
+                    Some Term.{ subject; predicate; object_ }
                 | _ -> None)))
 
 let from_file (Path raw as path) =
@@ -110,9 +83,9 @@ let pp_term fmt = function
   | Term.Iri uri -> Fmt.pf fmt "<%s>" uri
   | Term.Blank id -> Fmt.pf fmt "_:%s" id
   | Term.Literal { value; datatype = None } -> Fmt.pf fmt "%S" value
-  | Term.Literal { value; datatype = Some (Datatype.T dt) } ->
+  | Term.Literal { value; datatype = Some (Term.Datatype.T dt) } ->
       Fmt.pf fmt "%S^^<%s>" value dt
 
-let pp_triple fmt t =
+let pp_triple fmt (t : Term.triple) =
   Fmt.pf fmt "%a %a %a ." pp_term t.subject pp_term t.predicate pp_term
     t.object_

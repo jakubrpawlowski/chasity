@@ -68,12 +68,14 @@ Chasity follows a standard compiler pipeline:
 ```
 .ttl  ->  riot  ->  N-Triples  ->  ntriples.ml  ->  triple store  ->  shacl.ml  ->  .proto
           ~~~~      ~~~~~~~~~      ~~~~~~~~~~~      ~~~~~~~~~~~~      ~~~~~~~~      ~~~~~~
-          lexer     tokens         parser           AST               IR            codegen
+          lexer     tokens         parser           indexed AST       IR            codegen
 ```
 
-| File                  | Compiler phase         | What it does                                                    |
-| --------------------- | ---------------------- | --------------------------------------------------------------- |
-| `lib/ntriples.ml`     | Lexer/Parser           | Shells out to `riot`, parses N-Triples lines into typed triples |
-| `lib/triple_store.ml` | AST                    | In-memory subject-indexed store of parsed triples               |
-| `lib/shacl.ml`        | Semantic analysis → IR | Extracts typed SHACL shapes from the triple store               |
-| `lib/proto_emit.ml`   | Code generation        | Emits `.proto` files from shapes                                |
+| File                   | Compiler phase         | What it does                                                    |
+| ---------------------- | ---------------------- | --------------------------------------------------------------- |
+| `lib/ntriples.ml`      | Lexer/Parser           | Shells out to `riot`, parses N-Triples lines into typed triples |
+| `lib/triple_store.ml`  | Indexed AST            | Subject-indexed store for triple lookups                        |
+| `lib/shacl.ml`         | Semantic analysis → IR | Extracts typed SHACL shapes from the triple store               |
+| `lib/proto_emit.ml`    | Code generation        | Emits `.proto` files from shapes                                |
+| `lib/validate_emit.ml` | Code generation        | Maps SHACL constraints to protovalidate field options           |
+| `lib/resolve.ml`       | Linking                | Resolves cross-file shape references into proto import paths    |

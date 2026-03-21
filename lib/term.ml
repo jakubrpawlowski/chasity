@@ -1,4 +1,4 @@
-(* RDF data model: terms (IRI, blank node, literal) and triples *)
+(* AST: RDF terms (IRI, blank node, literal) and triples *)
 
 module Datatype = struct
   type t = T of string

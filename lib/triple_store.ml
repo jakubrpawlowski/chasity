@@ -1,4 +1,4 @@
-(* AST: in-memory subject-indexed store of parsed triples *)
+(* In-memory subject-indexed store for triple lookups *)
 
 module TermMap = Map.Make (Term)
 

@@ -3,6 +3,7 @@ let to_snake_case s =
   String.iteri
     (fun i c ->
       match (i, c) with
+      | 0, '_' -> ()
       | _, '-' -> Buffer.add_char buf '_'
       | 0, 'A' .. 'Z' -> Buffer.add_char buf (Char.lowercase_ascii c)
       | _, 'A' .. 'Z' ->

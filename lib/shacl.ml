@@ -98,7 +98,12 @@ let extract_property_shape store prop_term =
           in_ =
             (match Triple_store.find_object (Rdf.sh "in") pairs with
             | Some list_head ->
-                List.filter_map Term.to_string
+                List.filter_map
+                  (fun term ->
+                    match term with
+                    | Term.Iri _ ->
+                        Term.to_iri term |> Option.map Iri.to_local_name
+                    | _ -> Term.to_string term)
                   (Rdf.collect_rdf_list store list_head)
             | None -> []);
           or_ =

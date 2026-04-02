@@ -30,38 +30,23 @@ let generate_cmd =
         |> List.map (Filename.concat path))
     else Ok [ path ]
   in
-  let parse_file file =
-    match Chasity_lib.Ntriples.from_file (Path file) with
-    | Error (Riot_failed { path = Path p; exit_code }) ->
-        Error (Printf.sprintf "%s: riot failed (exit %d)" p exit_code)
-    | Ok triples ->
-        let store = Chasity_lib.Triple_store.of_triples triples in
-        Ok (file, Chasity_lib.Shacl.extract_node_shapes store)
-  in
-  let write_group ~package out (group : Chasity_lib.Resolve.file_group) =
-    List.iter
-      (fun w ->
-        match w with
-        | Chasity_lib.Resolve.Unresolved_reference iri ->
-            color_warn "unresolved reference %s" iri
-        | Chasity_lib.Resolve.Node_class_mismatch { node; class_ } ->
-            color_warn "sh:node %s and sh:class %s resolve to different files"
-              node class_)
-      group.warnings;
-    match
-      Chasity_lib.Proto_emit.emit_proto ~package ~imports:group.imports
-        group.shapes
-    with
+  let write_group ~package out (group : Chasity_lib.Pipeline.group_result) =
+    group.warnings
+    |> List.iter (function
+         | Chasity_lib.Resolve.Unresolved_reference iri ->
+             color_warn "unresolved reference %s" iri
+         | Chasity_lib.Resolve.Node_class_mismatch { node; class_ } ->
+             color_warn "sh:node %s and sh:class %s resolve to different files"
+               node class_);
+    match group.proto with
     | Error errs ->
-        List.map
-          (fun err ->
-            match err with
-            | Chasity_lib.Proto_emit.Unsupported_datatype (Iri iri) ->
-                Printf.sprintf "%s: unsupported datatype %s" group.source iri
-            | Chasity_lib.Proto_emit.Fractional_constraint (Iri iri) ->
-                Printf.sprintf "%s: fractional constraint on integer field %s"
-                  group.source iri)
-          errs
+        errs
+        |> List.map (function
+             | Chasity_lib.Proto_emit.Unsupported_datatype (Iri iri) ->
+                 Printf.sprintf "%s: unsupported datatype %s" group.source iri
+             | Chasity_lib.Proto_emit.Fractional_constraint (Iri iri) ->
+                 Printf.sprintf "%s: fractional constraint on integer field %s"
+                   group.source iri)
     | Ok proto -> (
         let base =
           group.source |> Filename.basename |> Filename.chop_extension
@@ -97,28 +82,19 @@ let generate_cmd =
     match collect_ttl_files shapes with
     | Error msg -> `Error (false, msg)
     | Ok files -> (
-        let parsed, parse_errors =
-          List.partition_map
-            (fun f ->
-              match parse_file f with Ok x -> Left x | Error e -> Right e)
-            files
-        in
-        match parse_errors with
-        | _ :: _ ->
-            List.iter (color_error "%s") parse_errors;
+        match Chasity_lib.Pipeline.compile ~package files with
+        | Error (Parse_errors errs) ->
+            List.iter (color_error "%s") errs;
             `Error (false, "some files failed to parse")
-        | [] -> (
-            match Chasity_lib.Resolve.resolve ~package parsed with
-            | Error (Duplicate_iri { iri; file1; file2 }) ->
-                color_error "duplicate target class %s (%s and %s)" iri file1
-                  file2;
-                `Error (false, "duplicate definitions")
-            | Ok groups -> (
-                match List.concat_map (write_group ~package out) groups with
-                | [] -> `Ok ()
-                | failed ->
-                    List.iter (color_error "%s") failed;
-                    `Error (false, "some files failed"))))
+        | Error (Resolve_error (Duplicate_iri { iri; file1; file2 })) ->
+            color_error "duplicate target class %s (%s and %s)" iri file1 file2;
+            `Error (false, "duplicate definitions")
+        | Ok groups -> (
+            match List.concat_map (write_group ~package out) groups with
+            | [] -> `Ok ()
+            | failed ->
+                List.iter (color_error "%s") failed;
+                `Error (false, "some files failed")))
   in
   let info = Cmd.info "generate" ~doc in
   Cmd.v info Term.(ret (const run $ shapes $ out $ package))

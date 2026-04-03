@@ -44,6 +44,16 @@ nix-shell:
 validate-fixtures:
     {{nix}} bash scripts/validate-fixtures.sh
 
+# Generate test protos from fixtures into test/output/
+test-generate:
+    mkdir -p test/output
+    printf 'version: v2\ndeps:\n  - buf.build/bufbuild/protovalidate\n' > test/output/buf.yaml
+    {{nix}} dune exec bin/main.exe -- generate --shapes test/fixtures --out test/output --package test.v1
+
+# Generate test protos then run buf lint
+test-lint: test-generate
+    {{nix}} bash -c 'cd test/output && buf dep update && buf lint --path test/v1/'
+
 # Print the CLI help text
 help:
     {{nix}} dune exec chasity -- --help

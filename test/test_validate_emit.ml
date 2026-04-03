@@ -23,46 +23,47 @@ let make_prop () : Chasity_lib.Shacl.property_shape =
 let test_validate_emit () =
   let open Chasity_lib in
   let base = make_prop () in
+  let scalar = { base with max_count = Some 1 } in
   (* no constraints -> empty *)
   Alcotest.(check string)
     "no constraints" ""
-    (Validate_emit.emit_field_options ~proto_type:"string" base);
+    (Validate_emit.emit_field_options ~proto_type:"string" scalar);
   (* string pattern *)
   Alcotest.(check string)
     "pattern" " [(buf.validate.field).string = {pattern: \"^[a-z]+$\"}]"
     (Validate_emit.emit_field_options ~proto_type:"string"
-       { base with pattern = Some "^[a-z]+$" });
+       { scalar with pattern = Some "^[a-z]+$" });
   (* string length *)
   Alcotest.(check string)
     "string length"
     " [(buf.validate.field).string = {min_len: 1, max_len: 100}]"
     (Validate_emit.emit_field_options ~proto_type:"string"
-       { base with min_length = Some 1; max_length = Some 100 });
+       { scalar with min_length = Some 1; max_length = Some 100 });
   (* numeric inclusive *)
   Alcotest.(check string)
     "int64 inclusive" " [(buf.validate.field).int64 = {gte: 0, lte: 99}]"
     (Validate_emit.emit_field_options ~proto_type:"int64"
-       { base with min_inclusive = Some 0.; max_inclusive = Some 99. });
+       { scalar with min_inclusive = Some 0.; max_inclusive = Some 99. });
   (* numeric exclusive *)
   Alcotest.(check string)
     "double exclusive" " [(buf.validate.field).double = {gt: 0, lt: 100}]"
     (Validate_emit.emit_field_options ~proto_type:"double"
-       { base with min_exclusive = Some 0.; max_exclusive = Some 100. });
+       { scalar with min_exclusive = Some 0.; max_exclusive = Some 100. });
   (* float with fractional constraints *)
   Alcotest.(check string)
     "double fractional" " [(buf.validate.field).double = {gte: 0.5, lt: 99.9}]"
     (Validate_emit.emit_field_options ~proto_type:"double"
-       { base with min_inclusive = Some 0.5; max_exclusive = Some 99.9 });
-  (* repeated min_items *)
+       { scalar with min_inclusive = Some 0.5; max_exclusive = Some 99.9 });
+  (* repeated min_items only *)
   Alcotest.(check string)
-    "repeated min_items" " [(buf.validate.field).repeated.min_items = 2]"
+    "repeated min_items" " [(buf.validate.field).repeated = {min_items: 2}]"
     (Validate_emit.emit_field_options ~proto_type:"string"
        { base with min_count = Some 2 });
-  (* string constraints + repeated min_items combined *)
+  (* string constraints + repeated min_items nested under repeated.items *)
   Alcotest.(check string)
     "combined string + repeated"
-    " [(buf.validate.field).string = {min_len: 1}, \
-     (buf.validate.field).repeated.min_items = 1]"
+    " [(buf.validate.field).repeated = {min_items: 1, items: {string: \
+     {min_len: 1}}}]"
     (Validate_emit.emit_field_options ~proto_type:"string"
        { base with min_length = Some 1; min_count = Some 1 });
   (* constraints for wrong type silently ignored *)

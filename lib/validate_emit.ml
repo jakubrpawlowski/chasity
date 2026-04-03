@@ -27,36 +27,41 @@ let numeric_constraints ~proto_type (prop : Shacl.property_shape) =
 let is_repeated (prop : Shacl.property_shape) =
   match prop.max_count with Some 1 -> false | _ -> true
 
+let type_constraint_block ~proto_type (prop : Shacl.property_shape) =
+  match proto_type with
+  | "string" ->
+      let cs = string_constraints prop in
+      if cs = [] then None else Some ("string", String.concat ", " cs)
+  | "int32" | "int64" | "uint64" | "float" | "double" ->
+      let cs = numeric_constraints ~proto_type prop in
+      if cs = [] then None else Some (proto_type, String.concat ", " cs)
+  | _ -> None
+
+let min_items_of (prop : Shacl.property_shape) =
+  match prop.min_count with Some n when n >= 1 -> Some n | _ -> None
+
 let collect_options ~proto_type (prop : Shacl.property_shape) =
-  let type_options =
-    match proto_type with
-    | "string" ->
-        let cs = string_constraints prop in
-        if cs = [] then []
-        else
-          [
-            Printf.sprintf "(buf.validate.field).string = {%s}"
-              (String.concat ", " cs);
-          ]
-    | "int32" | "int64" | "uint64" | "float" | "double" ->
-        let cs = numeric_constraints ~proto_type prop in
-        if cs = [] then []
-        else
-          [
-            Printf.sprintf "(buf.validate.field).%s = {%s}" proto_type
-              (String.concat ", " cs);
-          ]
-    | _ -> []
-  in
-  let repeated_options =
-    if is_repeated prop then
-      match prop.min_count with
-      | Some n when n >= 1 ->
-          [ Printf.sprintf "(buf.validate.field).repeated.min_items = %d" n ]
-      | _ -> []
-    else []
-  in
-  type_options @ repeated_options
+  let type_block = type_constraint_block ~proto_type prop in
+  if is_repeated prop then
+    let items_part =
+      Option.map
+        (fun (ty, cs) -> Printf.sprintf "items: {%s: {%s}}" ty cs)
+        type_block
+    in
+    let min_part =
+      Option.map (Printf.sprintf "min_items: %d") (min_items_of prop)
+    in
+    let parts = List.filter_map Fun.id [ min_part; items_part ] in
+    if parts = [] then []
+    else
+      [
+        Printf.sprintf "(buf.validate.field).repeated = {%s}"
+          (String.concat ", " parts);
+      ]
+  else
+    match type_block with
+    | Some (ty, cs) -> [ Printf.sprintf "(buf.validate.field).%s = {%s}" ty cs ]
+    | None -> []
 
 let emit_field_options ~proto_type prop =
   match collect_options ~proto_type prop with

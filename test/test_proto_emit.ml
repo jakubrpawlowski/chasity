@@ -51,6 +51,8 @@ let test_unsupported_datatype () =
   | Error (Fractional_constraint _) ->
       Alcotest.fail
         "expected Unsupported_datatype but got Fractional_constraint"
+  | Error (Node_without_class _) ->
+      Alcotest.fail "expected Unsupported_datatype but got Node_without_class"
   | Ok proto_type -> Alcotest.failf "expected error but got %s" proto_type
 
 let make_prop ?(path = "test") ?min_count ?max_count ?order () :
@@ -283,6 +285,37 @@ let test_emit_or_shape () =
           in
           Alcotest.(check string) "or shape proto output" expected proto)
 
+let test_emit_order () =
+  match Chasity_lib.Ntriples.from_file (Path "fixtures/order.ttl") with
+  | Error (Chasity_lib.Ntriples.Riot_failed { path = Path p; exit_code }) ->
+      Alcotest.failf "riot failed on %s (exit %d)" p exit_code
+  | Ok triples -> (
+      let store = Chasity_lib.Triple_store.of_triples triples in
+      let shapes = Chasity_lib.Shacl.extract_node_shapes store in
+      match Chasity_lib.Proto_emit.emit_proto ~package:"test.v1" shapes with
+      | Error _ -> Alcotest.fail "emit_proto returned errors"
+      | Ok proto ->
+          let expected =
+            String.concat "\n"
+              [
+                "syntax = \"proto3\";";
+                "";
+                "package test.v1;";
+                "";
+                "message Address {";
+                "  string street = 1;";
+                "  string city = 2;";
+                "}";
+                "";
+                "message Order {";
+                "  string customer_uri = 1;";
+                "  Address shipping_address = 2;";
+                "}";
+                "";
+              ]
+          in
+          Alcotest.(check string) "order proto output" expected proto)
+
 let test_emit_bad_datatype () =
   match
     Chasity_lib.Ntriples.from_file (Path "fixtures/bad_shapes/bad_shape.ttl")
@@ -319,6 +352,7 @@ let suite =
       Alcotest.test_case "snake_case" `Quick test_snake_case;
       Alcotest.test_case "emit PersonShape" `Quick test_emit_proto;
       Alcotest.test_case "emit sh:or oneof" `Quick test_emit_or_shape;
+      Alcotest.test_case "emit order ref+embed" `Quick test_emit_order;
       Alcotest.test_case "reject bad datatype" `Quick test_emit_bad_datatype;
       Alcotest.test_case "reject invalid turtle" `Quick test_emit_invalid_turtle;
     ] )

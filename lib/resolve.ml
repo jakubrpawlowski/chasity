@@ -72,7 +72,7 @@ let resolve_refs ~package ~source ~registry (shape : Shacl.node_shape) =
               merge acc ([], [ Node_class_mismatch { node = n; class_ = c } ])
             else acc
         | Some iri, None -> merge acc (check_iri iri)
-        | None, Some iri -> merge acc (check_iri iri)
+        | None, Some _iri -> acc
         | None, None -> acc
       in
       List.fold_left (fun acc iri -> merge acc (check_iri iri)) acc prop.or_)

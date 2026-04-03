@@ -2,7 +2,10 @@
 
 open Fun_ext
 
-type error = Unsupported_datatype of Iri.t | Fractional_constraint of Iri.t
+type error =
+  | Unsupported_datatype of Iri.t
+  | Fractional_constraint of Iri.t
+  | Node_without_class of Iri.t
 
 let proto_type_of_datatype (Iri.Iri iri) =
   match iri with
@@ -61,7 +64,10 @@ let proto_type_of_property (prop : Shacl.property_shape) =
     Ok (Oneof variants)
   else
     match prop.class_ with
-    | Some class_iri -> Ok (Simple (Iri.to_local_name class_iri))
+    | Some class_iri when prop.node <> None ->
+        Ok (Simple (Iri.to_local_name class_iri))
+    | Some _class_iri -> Ok (Simple "string")
+    | None when prop.node <> None -> Error (Node_without_class prop.path)
     | None -> (
         match prop.datatype with
         | Some dt -> proto_type_of_datatype dt |> Result.map (fun s -> Simple s)
@@ -122,9 +128,13 @@ let emit_field resolved_type (prop : Shacl.property_shape) field_num =
       let options =
         Validate_emit.emit_field_options ~proto_type:type_name prop
       in
+      let name =
+        let base = field_name prop.path in
+        if prop.class_ <> None && prop.node = None then base ^ "_uri" else base
+      in
       emit_comment prop
-      ^ Printf.sprintf "  %s%s %s = %d%s;\n" label type_name
-          (field_name prop.path) field_num options
+      ^ Printf.sprintf "  %s%s %s = %d%s;\n" label type_name name field_num
+          options
   | Oneof variants ->
       let base = field_name prop.path in
       let inner =

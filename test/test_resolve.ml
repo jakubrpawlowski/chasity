@@ -24,7 +24,7 @@ let make_prop ?(path = "http://example.org/name") ?class_ ?node ?(or_ = []) () :
 let make_shape ~iri ~target_class properties : Chasity_lib.Shacl.node_shape =
   { iri = Iri iri; target_class = Iri target_class; properties }
 
-(* 1. No references — shape with only datatype properties *)
+(* No references — shape with only datatype properties *)
 let test_no_references () =
   let shape =
     make_shape ~iri:"http://ex.org/PersonShape"
@@ -40,7 +40,7 @@ let test_no_references () =
       Alcotest.(check int) "no warnings" 0 (List.length group.warnings)
   | Ok _ -> Alcotest.fail "expected one group"
 
-(* 2. Unresolved sh:node — references a shape that isn't loaded *)
+(* Unresolved sh:node — references a shape that isn't loaded *)
 let test_unresolved_node () =
   let shape =
     make_shape ~iri:"http://ex.org/PersonShape"
@@ -56,7 +56,7 @@ let test_unresolved_node () =
       Alcotest.(check int) "one warning" 1 (List.length group.warnings)
   | Ok _ -> Alcotest.fail "expected one group"
 
-(* 3. Unresolved sh:or — two class IRIs, neither loaded *)
+(* Unresolved sh:or — two class IRIs, neither loaded *)
 let test_unresolved_or () =
   let shape =
     make_shape ~iri:"http://ex.org/PaymentShape"
@@ -78,7 +78,7 @@ let test_unresolved_or () =
       Alcotest.(check int) "two warnings" 2 (List.length group.warnings)
   | Ok _ -> Alcotest.fail "expected one group"
 
-(* 4. Cross-file via sh:node — person references org in another file *)
+(* Cross-file via sh:node — person references org in another file *)
 let test_cross_file_node () =
   let person =
     make_shape ~iri:"http://ex.org/PersonShape"
@@ -103,12 +103,15 @@ let test_cross_file_node () =
       Alcotest.(check int) "no warnings" 0 (List.length person_group.warnings)
   | Ok _ -> Alcotest.fail "expected two groups"
 
-(* 5. Cross-file via sh:class only — no sh:node, lookup via target class *)
-let test_cross_file_class () =
+(* Cross-file embed — sh:class + sh:node needs import *)
+let test_cross_file_embed () =
   let person =
     make_shape ~iri:"http://ex.org/PersonShape"
       ~target_class:"http://ex.org/Person"
-      [ make_prop ~class_:(Iri "http://ex.org/Organization") () ]
+      [
+        make_prop ~class_:(Iri "http://ex.org/Organization")
+          ~node:(Iri "http://ex.org/OrgShape") ();
+      ]
   in
   let org =
     make_shape ~iri:"http://ex.org/OrgShape"
@@ -128,7 +131,30 @@ let test_cross_file_class () =
       Alcotest.(check int) "no warnings" 0 (List.length person_group.warnings)
   | Ok _ -> Alcotest.fail "expected two groups"
 
-(* 6. sh:node and sh:class mismatch — they resolve to different files,
+(* Cross-file reference — sh:class only is string, no import needed *)
+let test_cross_file_reference () =
+  let person =
+    make_shape ~iri:"http://ex.org/PersonShape"
+      ~target_class:"http://ex.org/Person"
+      [ make_prop ~class_:(Iri "http://ex.org/Organization") () ]
+  in
+  let org =
+    make_shape ~iri:"http://ex.org/OrgShape"
+      ~target_class:"http://ex.org/Organization"
+      [ make_prop () ]
+  in
+  match
+    Chasity_lib.Resolve.resolve ~package:"test.v1"
+      [ ("person.ttl", [ person ]); ("organization.ttl", [ org ]) ]
+  with
+  | Error _ -> Alcotest.fail "unexpected error"
+  | Ok [ person_group; _ ] ->
+      Alcotest.(check (list string))
+        "no imports for class-only reference" [] person_group.imports;
+      Alcotest.(check int) "no warnings" 0 (List.length person_group.warnings)
+  | Ok _ -> Alcotest.fail "expected two groups"
+
+(* sh:node and sh:class mismatch — they resolve to different files,
    both imports emitted plus a warning *)
 let test_node_class_mismatch () =
   let person =
@@ -168,7 +194,7 @@ let test_node_class_mismatch () =
         (List.length person_group.warnings)
   | Ok _ -> Alcotest.fail "expected three groups"
 
-(* 7. Local reference — two shapes in one file, no import needed *)
+(* Local reference — two shapes in one file, no import needed *)
 let test_local_reference () =
   let person =
     make_shape ~iri:"http://ex.org/PersonShape"
@@ -190,7 +216,7 @@ let test_local_reference () =
       Alcotest.(check int) "no warnings" 0 (List.length group.warnings)
   | Ok _ -> Alcotest.fail "expected one group"
 
-(* 8. Duplicate IRI across files — same target class in two files *)
+(* Duplicate IRI across files — same target class in two files *)
 let test_duplicate_across_files () =
   let org_a =
     make_shape ~iri:"http://ex.org/OrgShapeA"
@@ -209,7 +235,7 @@ let test_duplicate_across_files () =
   | Error (Duplicate_iri _) -> ()
   | Ok _ -> Alcotest.fail "expected error"
 
-(* 9. Duplicate IRI within same file — two shapes targeting same class *)
+(* Duplicate IRI within same file — two shapes targeting same class *)
 let test_duplicate_within_file () =
   let org_a =
     make_shape ~iri:"http://ex.org/OrgShapeA"
@@ -228,7 +254,7 @@ let test_duplicate_within_file () =
   | Error (Duplicate_iri _) -> ()
   | Ok _ -> Alcotest.fail "expected error"
 
-(* 10. Same shape IRI equals target class — no error *)
+(* Same shape IRI equals target class — no error *)
 let test_same_iri () =
   let shape =
     make_shape ~iri:"http://ex.org/Person" ~target_class:"http://ex.org/Person"
@@ -247,7 +273,8 @@ let suite =
       Alcotest.test_case "unresolved sh:node" `Quick test_unresolved_node;
       Alcotest.test_case "unresolved sh:or" `Quick test_unresolved_or;
       Alcotest.test_case "cross-file via sh:node" `Quick test_cross_file_node;
-      Alcotest.test_case "cross-file via sh:class" `Quick test_cross_file_class;
+      Alcotest.test_case "cross-file embed" `Quick test_cross_file_embed;
+      Alcotest.test_case "cross-file reference" `Quick test_cross_file_reference;
       Alcotest.test_case "sh:node/sh:class mismatch" `Quick
         test_node_class_mismatch;
       Alcotest.test_case "local reference" `Quick test_local_reference;

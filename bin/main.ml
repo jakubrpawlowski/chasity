@@ -32,7 +32,9 @@ let write_group ~package ~out (group : Chasity_lib.Pipeline.group_result) =
             Printf.sprintf "%s: unsupported datatype %s" group.source iri
         | Chasity_lib.Proto_emit.Fractional_constraint (Iri iri) ->
             Printf.sprintf "%s: fractional constraint on integer field %s"
-              group.source iri)
+              group.source iri
+        | Chasity_lib.Proto_emit.Node_without_class (Iri iri) ->
+            Printf.sprintf "%s: sh:node without sh:class on %s" group.source iri)
   | Ok proto -> (
       let dir =
         String.split_on_char '.' package

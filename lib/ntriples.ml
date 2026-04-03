@@ -47,17 +47,17 @@ let parse_line (Line line) =
   else
     String.rindex_opt line '.'
     |> Option_ext.flat_map (fun dot_pos ->
-           let content = String.sub line 0 dot_pos |> String.trim in
-           split_at_space content)
+        let content = String.sub line 0 dot_pos |> String.trim in
+        split_at_space content)
     |> Option_ext.flat_map (fun (subject_str, rest) ->
-           split_at_space rest
-           |> Option.map (fun (predicate_str, object_str) ->
-                  (subject_str, predicate_str, object_str)))
+        split_at_space rest
+        |> Option.map (fun (predicate_str, object_str) ->
+            (subject_str, predicate_str, object_str)))
     |> Option_ext.flat_map (fun (s, p, o) ->
-           match (parse_term s, parse_term p, parse_term o) with
-           | Some subject, Some predicate, Some object_ ->
-               Some Term.{ subject; predicate; object_ }
-           | _ -> None)
+        match (parse_term s, parse_term p, parse_term o) with
+        | Some subject, Some predicate, Some object_ ->
+            Some Term.{ subject; predicate; object_ }
+        | _ -> None)
 
 let from_file (Path raw as path) =
   let cmd = Printf.sprintf "riot --output=ntriples %s" (Filename.quote raw) in

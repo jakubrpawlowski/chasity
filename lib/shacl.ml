@@ -43,8 +43,8 @@ let sort_shapes (shapes : node_shape list) =
     List.concat_map
       (fun (p : property_shape) ->
         (match p.node with
-        | Some iri -> [ iri ]
-        | None -> ( match p.class_ with Some iri -> [ iri ] | None -> []))
+          | Some iri -> [ iri ]
+          | None -> ( match p.class_ with Some iri -> [ iri ] | None -> []))
         @ p.or_)
       s.properties
   in
@@ -149,8 +149,7 @@ let extract_node_shapes store =
   let node_shape_subjects =
     Triple_store.find_by_predicate (Rdf.rdf "type") store
     |> List.filter_map (fun (subject, obj) ->
-           if Term.compare obj (Rdf.sh "NodeShape") = 0 then Some subject
-           else None)
+        if Term.compare obj (Rdf.sh "NodeShape") = 0 then Some subject else None)
   in
   List.filter_map
     (fun subject ->

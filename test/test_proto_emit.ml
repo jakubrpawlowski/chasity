@@ -137,8 +137,8 @@ let test_sort_shapes () =
     make_shape
       ~props:
         [
-          ( make_prop ~path:"refC" () |> fun p ->
-            { p with class_ = Some (Iri.Iri "c:C") } );
+          (make_prop ~path:"refC" ()
+          |> fun p -> { p with class_ = Some (Iri.Iri "c:C") });
         ]
       "s:B" "c:B"
   in
@@ -146,8 +146,8 @@ let test_sort_shapes () =
     make_shape
       ~props:
         [
-          ( make_prop ~path:"refB" () |> fun p ->
-            { p with class_ = Some (Iri.Iri "c:B") } );
+          (make_prop ~path:"refB" ()
+          |> fun p -> { p with class_ = Some (Iri.Iri "c:B") });
         ]
       "s:A" "c:A"
   in
@@ -155,8 +155,8 @@ let test_sort_shapes () =
     make_shape
       ~props:
         [
-          ( make_prop ~path:"refB" () |> fun p ->
-            { p with node = Some (Iri.Iri "s:B") } );
+          (make_prop ~path:"refB" ()
+          |> fun p -> { p with node = Some (Iri.Iri "s:B") });
         ]
       "s:D" "c:D"
   in

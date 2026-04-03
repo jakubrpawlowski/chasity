@@ -1,5 +1,7 @@
 (* Linking phase: resolves cross-file shape references into proto import paths *)
 
+open Fun_ext
+
 type error = Duplicate_iri of { iri : string; file1 : string; file2 : string }
 
 type warning =
@@ -36,12 +38,14 @@ let build_registry (file_shapes : (string * Shacl.node_shape list) list) =
         reg shapes)
     (Ok StringMap.empty) file_shapes
 
-let import_path ~package source =
-  let base = source |> Filename.basename |> Filename.chop_extension in
-  let package_dir = String.split_on_char '.' package |> String.concat "/" in
-  Printf.sprintf "%s/%s.proto" package_dir (String_ext.to_snake_case base)
+let import_path ~package =
+  Filename.basename
+  >> Filename.chop_extension
+  >> String_ext.to_snake_case
+  >> Printf.sprintf "%s/%s.proto"
+       (String.split_on_char '.' package |> String.concat "/")
 
-let resolve_refs ~package ~source registry (shape : Shacl.node_shape) =
+let resolve_refs ~package ~source ~registry (shape : Shacl.node_shape) =
   let check_iri iri =
     let (Iri.Iri s) = iri in
     match StringMap.find_opt s registry with
@@ -74,12 +78,12 @@ let resolve_refs ~package ~source registry (shape : Shacl.node_shape) =
       List.fold_left (fun acc iri -> merge acc (check_iri iri)) acc prop.or_)
     ([], []) shape.properties
 
-let resolve_file registry ~package (source, shapes) =
+let resolve_file ~package registry (source, shapes) =
   let imports, warnings =
     List.fold_left
       (fun (imports, warnings) shape ->
         let new_imports, new_warnings =
-          resolve_refs ~package ~source registry shape
+          resolve_refs ~package ~source ~registry shape
         in
         (imports @ new_imports, warnings @ new_warnings))
       ([], []) shapes
@@ -89,5 +93,5 @@ let resolve_file registry ~package (source, shapes) =
 
 let resolve ~package (file_shapes : (string * Shacl.node_shape list) list) =
   build_registry file_shapes
-  |> Result_ext.flat_map (fun registry ->
-         Ok (List.map (resolve_file registry ~package) file_shapes))
+  |> Result.map (fun registry ->
+      List.map (resolve_file ~package registry) file_shapes)

@@ -119,7 +119,9 @@ let emit_field resolved_type (prop : Shacl.property_shape) field_num =
         | Optional -> "optional "
         | Repeated -> "repeated "
       in
-      let options = Validate_emit.emit_field_options type_name prop in
+      let options =
+        Validate_emit.emit_field_options ~proto_type:type_name prop
+      in
       emit_comment prop
       ^ Printf.sprintf "  %s%s %s = %d%s;\n" label type_name
           (field_name prop.path) field_num options
@@ -149,7 +151,8 @@ let emit_enum (prop : Shacl.property_shape) =
        Printf.sprintf "enum %s {\n" type_name;
        Printf.sprintf "  %s = 0;\n" (enum_value_name ~prefix "UNSPECIFIED");
      ]
-    @ values @ [ "}\n" ])
+    @ values
+    @ [ "}\n" ])
 
 let emit_message (shape : Shacl.node_shape) sorted =
   let message_name = Iri.to_local_name shape.target_class in
@@ -168,7 +171,8 @@ let resolve_shape (shape : Shacl.node_shape) =
         List.filter_map
           (fun ((prop : Shacl.property_shape), r) ->
             match r with
-            | Simple t when Validate_emit.has_fractional_int_constraints t prop
+            | Simple proto_type
+              when Validate_emit.has_fractional_int_constraints ~proto_type prop
               ->
                 Some (Fractional_constraint prop.path)
             | _ -> None)
@@ -200,7 +204,7 @@ let emit_proto ~package ?(imports = []) (shapes : Shacl.node_shape list) =
           List.exists
             (fun ((p : Shacl.property_shape), r) ->
               match r with
-              | Simple t -> Validate_emit.has_constraints t p
+              | Simple proto_type -> Validate_emit.has_constraints ~proto_type p
               | Oneof _ -> false)
             sorted)
         resolved
@@ -219,9 +223,7 @@ let emit_proto ~package ?(imports = []) (shapes : Shacl.node_shape list) =
            else None);
         ]
     in
-    let extra =
-      List.map (fun path -> Printf.sprintf "import \"%s\";\n" path) imports
-    in
+    let extra = imports |> List.map (Printf.sprintf "import \"%s\";\n") in
     let all_imports = well_known @ extra in
     let imports_str =
       match all_imports with [] -> "" | lines -> String.concat "" lines ^ "\n"

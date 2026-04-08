@@ -4,6 +4,7 @@ type group_result = {
   source : string;
   warnings : Resolve.warning list;
   proto : (string, Proto_emit.error list) result;
+  service : string;
 }
 
 type error = Parse_errors of string list | Resolve_error of Resolve.error
@@ -23,6 +24,12 @@ let emit_group ~package (group : Resolve.file_group) =
     source = group.source;
     warnings = group.warnings;
     proto = Proto_emit.emit_proto ~package ~imports:group.imports group.shapes;
+    service =
+      group.shapes
+      |> List.map (fun (s : Shacl.node_shape) ->
+          Iri.to_local_name s.target_class)
+      |> Service_emit.emit_service_proto ~package
+           ~entity_import:(Resolve.import_path ~package group.source);
   }
 
 let compile ~package files =

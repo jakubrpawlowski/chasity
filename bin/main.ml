@@ -6,6 +6,20 @@ let color_warn fmt =
 let color_error fmt =
   Fmt.epr ("chasity: %a: " ^^ fmt ^^ "@.") Fmt.(styled `Red string) "error"
 
+let rec mkdir_p path =
+  if not (Sys.file_exists path) then (
+    mkdir_p (Filename.dirname path);
+    Sys.mkdir path 0o755)
+
+let write_and_format path content =
+  Out_channel.with_open_text path
+    (Chasity_lib.Out_channel_ext.write_string content);
+  match
+    path |> Filename.quote |> Printf.sprintf "buf format -w %s" |> Sys.command
+  with
+  | 0 -> []
+  | code -> [ Printf.sprintf "%s: buf format failed (exit %d)" path code ]
+
 let collect_ttl_files path =
   if not (Sys.file_exists path) then Error (Printf.sprintf "%s: not found" path)
   else if Sys.is_directory path then
@@ -35,38 +49,22 @@ let write_group ~package ~out (group : Chasity_lib.Pipeline.group_result) =
               group.source iri
         | Chasity_lib.Proto_emit.Node_without_class (Iri iri) ->
             Printf.sprintf "%s: sh:node without sh:class on %s" group.source iri)
-  | Ok proto -> (
+  | Ok proto ->
       let dir =
         String.split_on_char '.' package
         |> String.concat Filename.dir_sep
         |> Filename.concat out
       in
-      let rec mkdir_p path =
-        if not (Sys.file_exists path) then (
-          mkdir_p (Filename.dirname path);
-          Sys.mkdir path 0o755)
-      in
       mkdir_p dir;
-      let out_path =
+      let base =
         group.source
         |> Filename.basename
         |> Filename.chop_extension
         |> Chasity_lib.String_ext.to_snake_case
-        |> Printf.sprintf "%s.proto"
-        |> Filename.concat dir
       in
-      let oc = open_out out_path in
-      output_string oc proto;
-      close_out oc;
-      match
-        out_path
-        |> Filename.quote
-        |> Printf.sprintf "buf format -w %s"
-        |> Sys.command
-      with
-      | 0 -> []
-      | code ->
-          [ Printf.sprintf "%s: buf format failed (exit %d)" out_path code ])
+      (proto |> write_and_format (base ^ ".proto" |> Filename.concat dir))
+      @ (group.service
+        |> write_and_format (base ^ "_service.proto" |> Filename.concat dir))
 
 let run shapes out package =
   Fmt_tty.setup_std_outputs ();

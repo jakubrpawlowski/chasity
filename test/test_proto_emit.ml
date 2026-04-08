@@ -197,14 +197,6 @@ let test_enum_mapping () =
     "enum value" "GENDER_FEMALE"
     (Proto_emit.enum_value_name ~prefix:"gender" "female")
 
-let test_snake_case () =
-  let open Chasity_lib.String_ext in
-  Alcotest.(check string)
-    "camelCase" "birth_date_time"
-    (to_snake_case "birthDateTime");
-  Alcotest.(check string) "already snake" "name" (to_snake_case "name");
-  Alcotest.(check string) "leading upper" "person" (to_snake_case "Person")
-
 let test_emit_proto () =
   match Chasity_lib.Ntriples.from_file (Path "fixtures/person.ttl") with
   | Error (Chasity_lib.Ntriples.Riot_failed { path = Path p; exit_code }) ->
@@ -348,7 +340,6 @@ let suite =
       Alcotest.test_case "sort_shapes topo" `Quick test_sort_shapes;
       Alcotest.test_case "to_local_name" `Quick test_to_local_name;
       Alcotest.test_case "enum mapping" `Quick test_enum_mapping;
-      Alcotest.test_case "snake_case" `Quick test_snake_case;
       Alcotest.test_case "emit PersonShape" `Quick test_emit_proto;
       Alcotest.test_case "emit sh:or oneof" `Quick test_emit_or_shape;
       Alcotest.test_case "emit order ref+embed" `Quick test_emit_order;

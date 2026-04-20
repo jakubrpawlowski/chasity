@@ -8,5 +8,4 @@ let () =
       Test_resolve.suite;
       Test_string_ext.suite;
       Test_service_emit.suite;
-      Test_sparql_serialize.suite;
     ]

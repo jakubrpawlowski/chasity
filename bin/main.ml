@@ -11,14 +11,27 @@ let rec mkdir_p path =
     mkdir_p (Filename.dirname path);
     Sys.mkdir path 0o755)
 
-let write_and_format path content =
+let write_file ~path content =
   Out_channel.with_open_text path
-    (Chasity_lib.Out_channel_ext.write_string content);
-  match
-    path |> Filename.quote |> Printf.sprintf "buf format -w %s" |> Sys.command
-  with
-  | 0 -> []
-  | code -> [ Printf.sprintf "%s: buf format failed (exit %d)" path code ]
+    (Chasity_lib.Out_channel_ext.write_string content)
+
+let write_json path content =
+  match write_file ~path content with
+  | () -> []
+  | exception Sys_error msg -> [ Printf.sprintf "%s: %s" path msg ]
+
+let write_and_format path content =
+  match write_file ~path content with
+  | exception Sys_error msg -> [ Printf.sprintf "%s: %s" path msg ]
+  | () -> (
+      match
+        path
+        |> Filename.quote
+        |> Printf.sprintf "buf format -w %s"
+        |> Sys.command
+      with
+      | 0 -> []
+      | code -> [ Printf.sprintf "%s: buf format failed (exit %d)" path code ])
 
 let collect_ttl_files path =
   if not (Sys.file_exists path) then Error (Printf.sprintf "%s: not found" path)
@@ -62,7 +75,10 @@ let write_group ~package ~out (group : Chasity_lib.Pipeline.group_result) =
         |> Filename.chop_extension
         |> Chasity_lib.String_ext.to_snake_case
       in
-      (proto |> write_and_format (base ^ ".proto" |> Filename.concat dir))
+      (group.descriptors
+      |> List.concat_map (fun (name, json) ->
+          json |> write_json (name ^ ".json" |> Filename.concat dir)))
+      @ (proto |> write_and_format (base ^ ".proto" |> Filename.concat dir))
       @ (group.service
         |> write_and_format (base ^ "_service.proto" |> Filename.concat dir))
 

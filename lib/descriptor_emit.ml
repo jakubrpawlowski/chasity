@@ -126,3 +126,7 @@ let emit_descriptor (shape : Shacl.node_shape) =
           (shape.properties |> sort_properties |> List.map field_descriptor) );
     ]
   |> Json.to_string
+
+let emit_named_descriptor (shape : Shacl.node_shape) =
+  ( shape.target_class |> Iri.to_local_name |> String_ext.to_snake_case,
+    emit_descriptor shape )

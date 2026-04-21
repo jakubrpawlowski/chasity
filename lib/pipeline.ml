@@ -5,6 +5,7 @@ type group_result = {
   warnings : Resolve.warning list;
   proto : (string, Proto_emit.error list) result;
   service : string;
+  descriptors : (string * string) list;
 }
 
 type error = Parse_errors of string list | Resolve_error of Resolve.error
@@ -30,6 +31,7 @@ let emit_group ~package (group : Resolve.file_group) =
           Iri.to_local_name s.target_class)
       |> Service_emit.emit_service_proto ~package
            ~entity_import:(Resolve.import_path ~package group.source);
+    descriptors = group.shapes |> List.map Descriptor_emit.emit_named_descriptor;
   }
 
 let compile ~package files =

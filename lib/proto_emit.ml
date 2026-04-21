@@ -43,7 +43,9 @@ let cardinality_of_property (prop : Shacl.property_shape) =
 let enum_type_name = Iri.to_local_name >> String.capitalize_ascii
 
 let enum_value_name ~prefix value =
-  String.uppercase_ascii prefix ^ "_" ^ String.uppercase_ascii value
+  (String_ext.to_snake_case >> String.uppercase_ascii) prefix
+  ^ "_"
+  ^ String.uppercase_ascii value
 
 let field_name = Iri.to_local_name >> String_ext.to_snake_case
 

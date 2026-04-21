@@ -63,6 +63,16 @@ For each shape file, chasity emits three outputs into the `--out` directory:
 - `<entity>_service.proto` — gRPC service with List, BatchGet, CRUD RPCs
 - `<entity>.json` — entity descriptor for the generic server
 
+The output directory needs a `buf.yaml` for `buf lint` to work. Create one if
+you don't have it:
+
+```yaml
+# proto/buf.yaml
+version: v2
+deps:
+  - buf.build/bufbuild/protovalidate
+```
+
 ### Generated files
 
 **`<entity>.proto`** — Protobuf message definitions. Each SHACL `NodeShape`
@@ -92,16 +102,6 @@ SPARQL queries at runtime — no per-entity server code needed. Each field has a
 | `repeated_uri` | `sh:class` (no `sh:node`) repeated | tags                    |
 | `enum`         | `sh:in`                            | gender, status          |
 | `oneof`        | `sh:or`                            | paid_with               |
-
-The output directory needs a `buf.yaml` for `buf lint` to work. Create one if
-you don't have it:
-
-```yaml
-# proto/buf.yaml
-version: v2
-deps:
-  - buf.build/bufbuild/protovalidate
-```
 
 ## Architecture
 

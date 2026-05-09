@@ -97,14 +97,13 @@ let field_descriptor (prop : Shacl.property_shape) =
                (fun cls -> ("reference", Json.Str (Iri.to_local_name cls)))
                prop.class_)
       | Enum ->
-          [ ("values", Json.Arr (List.map (fun v -> Json.Str v) prop.in_)) ]
+          [ ("values", Json.Arr (prop.in_ |> List.map (fun v -> Json.Str v))) ]
       | Oneof ->
           [
             ( "alternatives",
               Json.Arr
-                (List.map
-                   (fun iri -> Json.Str (Iri.to_local_name iri))
-                   prop.or_) );
+                (prop.or_
+                |> List.map (fun iri -> Json.Str (Iri.to_local_name iri))) );
           ])
     @ [
         ("required", Json.Bool (is_required prop));

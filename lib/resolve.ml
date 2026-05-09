@@ -31,12 +31,15 @@ let build_registry (file_shapes : (string * Shacl.node_shape list) list) =
     |> Result_ext.flat_map (register source shape.iri shape.iri)
     |> Result_ext.flat_map (register source shape.iri shape.target_class)
   in
-  List.fold_left
-    (fun reg (source, shapes) ->
-      List.fold_left
-        (fun reg shape -> Result_ext.flat_map (register_shape source shape) reg)
-        reg shapes)
-    (Ok StringMap.empty) file_shapes
+  file_shapes
+  |> List.fold_left
+       (fun reg (source, shapes) ->
+         shapes
+         |> List.fold_left
+              (fun reg shape ->
+                Result_ext.flat_map (register_shape source shape) reg)
+              reg)
+       (Ok StringMap.empty)
 
 let import_path ~package =
   Filename.basename
@@ -57,36 +60,39 @@ let resolve_refs ~package ~source ~registry (shape : Shacl.node_shape) =
   let merge (acc_imports, acc_warnings) (new_imports, new_warnings) =
     (acc_imports @ new_imports, acc_warnings @ new_warnings)
   in
-  List.fold_left
-    (fun acc (prop : Shacl.property_shape) ->
-      let acc =
-        match (prop.node, prop.class_) with
-        | Some node_iri, Some class_iri ->
-            let acc = merge acc (check_iri node_iri) in
-            let acc = merge acc (check_iri class_iri) in
-            let (Iri.Iri n) = node_iri in
-            let (Iri.Iri c) = class_iri in
-            let node_source = StringMap.find_opt n registry in
-            let class_source = StringMap.find_opt c registry in
-            if node_source <> class_source then
-              merge acc ([], [ Node_class_mismatch { node = n; class_ = c } ])
-            else acc
-        | Some iri, None -> merge acc (check_iri iri)
-        | None, Some _iri -> acc
-        | None, None -> acc
-      in
-      List.fold_left (fun acc iri -> merge acc (check_iri iri)) acc prop.or_)
-    ([], []) shape.properties
+  shape.properties
+  |> List.fold_left
+       (fun acc (prop : Shacl.property_shape) ->
+         let acc =
+           match (prop.node, prop.class_) with
+           | Some node_iri, Some class_iri ->
+               let acc = merge acc (check_iri node_iri) in
+               let acc = merge acc (check_iri class_iri) in
+               let (Iri.Iri n) = node_iri in
+               let (Iri.Iri c) = class_iri in
+               let node_source = StringMap.find_opt n registry in
+               let class_source = StringMap.find_opt c registry in
+               if node_source <> class_source then
+                 merge acc ([], [ Node_class_mismatch { node = n; class_ = c } ])
+               else acc
+           | Some iri, None -> merge acc (check_iri iri)
+           | None, Some _iri -> acc
+           | None, None -> acc
+         in
+         prop.or_
+         |> List.fold_left (fun acc iri -> merge acc (check_iri iri)) acc)
+       ([], [])
 
 let resolve_file ~package registry (source, shapes) =
   let imports, warnings =
-    List.fold_left
-      (fun (imports, warnings) shape ->
-        let new_imports, new_warnings =
-          resolve_refs ~package ~source ~registry shape
-        in
-        (imports @ new_imports, warnings @ new_warnings))
-      ([], []) shapes
+    shapes
+    |> List.fold_left
+         (fun (imports, warnings) shape ->
+           let new_imports, new_warnings =
+             resolve_refs ~package ~source ~registry shape
+           in
+           (imports @ new_imports, warnings @ new_warnings))
+         ([], [])
   in
   let imports = List.sort_uniq String.compare imports in
   { source; shapes; imports; warnings }

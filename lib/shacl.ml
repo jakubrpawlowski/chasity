@@ -32,33 +32,30 @@ let sort_shapes (shapes : node_shape list) =
   let shapes_arr = Array.of_list shapes in
   let n = Array.length shapes_arr in
   let iri_to_idx = Hashtbl.create (n * 2) in
-  Array.iteri
-    (fun i (s : node_shape) ->
+  shapes_arr
+  |> Array.iteri (fun i (s : node_shape) ->
       let (Iri.Iri si) = s.iri in
       let (Iri.Iri ci) = s.target_class in
       Hashtbl.replace iri_to_idx si i;
-      Hashtbl.replace iri_to_idx ci i)
-    shapes_arr;
+      Hashtbl.replace iri_to_idx ci i);
   let refs_of (s : node_shape) =
-    List.concat_map
-      (fun (p : property_shape) ->
+    s.properties
+    |> List.concat_map (fun (p : property_shape) ->
         (match p.node with
           | Some iri -> [ iri ]
           | None -> ( match p.class_ with Some iri -> [ iri ] | None -> []))
         @ p.or_)
-      s.properties
   in
   let visited = Array.make n false in
   let result = ref [] in
   let rec visit i =
     if not visited.(i) then (
       visited.(i) <- true;
-      List.iter
-        (fun (Iri.Iri iri) ->
+      refs_of shapes_arr.(i)
+      |> List.iter (fun (Iri.Iri iri) ->
           match Hashtbl.find_opt iri_to_idx iri with
           | Some j when j <> i -> visit j
-          | _ -> ())
-        (refs_of shapes_arr.(i));
+          | _ -> ());
       result := shapes_arr.(i) :: !result)
   in
   for i = 0 to n - 1 do
@@ -98,23 +95,21 @@ let extract_property_shape store prop_term =
           in_ =
             (match Triple_store.find_object (Rdf.sh "in") pairs with
             | Some list_head ->
-                List.filter_map
-                  (fun term ->
+                Rdf.collect_rdf_list store list_head
+                |> List.filter_map (fun term ->
                     match term with
                     | Term.Iri _ ->
                         Term.to_iri term |> Option.map Iri.to_local_name
                     | _ -> Term.to_string term)
-                  (Rdf.collect_rdf_list store list_head)
             | None -> []);
           or_ =
             (match Triple_store.find_object (Rdf.sh "or") pairs with
             | Some list_head ->
-                List.filter_map
-                  (fun term ->
+                Rdf.collect_rdf_list store list_head
+                |> List.filter_map (fun term ->
                     let shape_pairs = Triple_store.find_subject term store in
                     Triple_store.find_object (Rdf.sh "class") shape_pairs
                     |> Option_ext.flat_map Term.to_iri)
-                  (Rdf.collect_rdf_list store list_head)
             | None -> []);
           min_length =
             Triple_store.find_object (Rdf.sh "minLength") pairs
@@ -151,8 +146,8 @@ let extract_node_shapes store =
     |> List.filter_map (fun (subject, obj) ->
         if Term.compare obj (Rdf.sh "NodeShape") = 0 then Some subject else None)
   in
-  List.filter_map
-    (fun subject ->
+  node_shape_subjects
+  |> List.filter_map (fun subject ->
       let pairs = Triple_store.find_subject subject store in
       match
         ( Term.to_iri subject,
@@ -160,12 +155,9 @@ let extract_node_shapes store =
           |> Option_ext.flat_map Term.to_iri )
       with
       | Some iri, Some target_class ->
-          let prop_terms =
-            Triple_store.find_all_objects (Rdf.sh "property") pairs
-          in
           let properties =
-            List.filter_map (extract_property_shape store) prop_terms
+            Triple_store.find_all_objects (Rdf.sh "property") pairs
+            |> List.filter_map (extract_property_shape store)
           in
           Some { iri; target_class; properties }
       | _ -> None)
-    node_shape_subjects

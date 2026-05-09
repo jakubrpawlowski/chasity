@@ -31,7 +31,7 @@ let rec to_json_string depth = function
   | Arr items ->
       let pad = String.make ((depth + 1) * 2) ' ' in
       let inner =
-        List.map (fun item -> pad ^ to_json_string (depth + 1) item) items
+        items |> List.map (fun item -> pad ^ to_json_string (depth + 1) item)
       in
       Printf.sprintf "[\n%s\n%s]"
         (String.concat ",\n" inner)
@@ -40,11 +40,10 @@ let rec to_json_string depth = function
   | Obj pairs ->
       let pad = String.make ((depth + 1) * 2) ' ' in
       let inner =
-        List.map
-          (fun (k, v) ->
+        pairs
+        |> List.map (fun (k, v) ->
             Printf.sprintf "%s\"%s\": %s" pad (json_escape k)
               (to_json_string (depth + 1) v))
-          pairs
       in
       Printf.sprintf "{\n%s\n%s}"
         (String.concat ",\n" inner)

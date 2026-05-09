@@ -43,15 +43,15 @@ let min_items_of (prop : Shacl.property_shape) =
 let collect_options ~proto_type (prop : Shacl.property_shape) =
   let type_block = type_constraint_block ~proto_type prop in
   if is_repeated prop then
-    let items_part =
-      Option.map
-        (fun (ty, cs) -> Printf.sprintf "items: {%s: {%s}}" ty cs)
-        type_block
+    let parts =
+      List.filter_map Fun.id
+        [
+          Option.map (Printf.sprintf "min_items: %d") (min_items_of prop);
+          Option.map
+            (fun (ty, cs) -> Printf.sprintf "items: {%s: {%s}}" ty cs)
+            type_block;
+        ]
     in
-    let min_part =
-      Option.map (Printf.sprintf "min_items: %d") (min_items_of prop)
-    in
-    let parts = List.filter_map Fun.id [ min_part; items_part ] in
     if parts = [] then []
     else
       [

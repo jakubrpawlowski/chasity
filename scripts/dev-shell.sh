@@ -5,7 +5,7 @@
 
 if [ -n "$IN_NIX_SHELL" ]; then
     echo "Already in nix dev shell."
-    exec "$SHELL"
+    exit 0
 else
     exec nix develop
 fi
